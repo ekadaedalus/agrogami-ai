@@ -1,0 +1,14 @@
+{
+  "synthetic": true,
+  "template_version": "synthetic-provider-v1",
+  "limitation": "Invented English templates; not verified provider integrations or production messages.",
+  "messages": [
+    {"provider": "SYNTHETIC-bKash-like", "text": "SYNTHETIC: Receipt Tk 100.00. Fee Tk 0.00. TrxID SYNTH-RECEIPT. Balance Tk 500.00. Date 2025-12-01. Time 10:30:00+06:00."},
+    {"provider": "SYNTHETIC-Nagad-like", "text": "SYNTHETIC: Send Money Tk 100.00. Fee Tk 2.00. TrxID SYNTH-SEND. Counterparty demo-shop. Date 2025-12-01. Time 10:30:00+06:00."},
+    {"provider": "SYNTHETIC-bKash-like", "text": "SYNTHETIC: Cash In Tk 100.00. Fee Tk 0.00. TrxID SYNTH-CASHIN. Date 2025-12-01. Time 10:30:00+06:00."},
+    {"provider": "SYNTHETIC-Nagad-like", "text": "SYNTHETIC: Cash Out Tk 100.00. Fee Tk 2.00. TrxID SYNTH-CASHOUT. Date 2025-12-01. Time 10:30:00+06:00."},
+    {"provider": "SYNTHETIC-bKash-like", "text": "SYNTHETIC: Payment Tk 100.00. Fee Tk 2.00. TrxID SYNTH-PAYMENT. Date 2025-12-01. Time 10:30:00+06:00."},
+    {"provider": "SYNTHETIC-Nagad-like", "text": "SYNTHETIC: Reversal Tk 100.00. Fee Tk 0.00. TrxID SYNTH-REVERSAL. Date 2025-12-01. Time 10:30:00+06:00."},
+    {"provider": "SYNTHETIC-bKash-like", "text": "SYNTHETIC: Promotional notice. No transaction."}
+  ]
+}

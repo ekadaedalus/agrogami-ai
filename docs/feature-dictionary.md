@@ -1,5 +1,11 @@
 # Feature dictionary v1.0
 
+Second pass preserves every formula and feature schema below. Risk artifacts select an explicit ordered numeric subset of one declared window. Missing or structured values fail risk-vector construction; protected audit columns are not model features. No raw extraction is projected into risk inputs. Required feature coverage reasons also prevent assessment scoring.
+
+Project display mapping is a downstream transformation of calibrated probability: `600+40*log2((1-p)/(9p))`, internal p clamp [1e-9,1-1e-9], integer rounding after clipping to [300,850]. Approximately p=.10→600, .05→643, .20→553. Both unclipped and clipped results are retained. This is not FICO, not bureau-equivalent, does not create calibration and is not an approval decision.
+
+Controlled descriptive reasons require verified features: LATE_VERIFIED_BILLS needs complete schedule/payment evidence and positive verified delay; LOWER_TAIL_LIQUIDITY requires complete balance history and liquidity floor <0.5 (research threshold); INSUFFICIENT_EVIDENCE reports explicit coverage/missingness. Every reason retains window, observed value, event IDs and source references. These are evidence descriptions, not causal claims or loan decisions. TreeSHAP explains raw model log-odds with a declared background, not the project score.
+
 All windows are 30, 60 or 90 days: `t0-window <= event_time < t0`. Only accepted current versions known before t0 contribute. Linked duplicates and full reversals have no additional economic effect. Own transfers, credit sales/receivables/payables, and unproven cash-in/out are excluded from external flows. Credit settlement must link a prior accepted receivable; it adds cash only at settlement time, with cumulative settlement capped at the sale amount.
 
 Every value includes contributing_event_ids and coverage/review reasons. Cash totals are totals of verified evidence, not estimates of complete real cash flow. With no qualifying events and incomplete coverage they are null; with an explicitly complete observed window, zero is known. Unknown days are never inserted into daily statistics. Contributor IDs include coverage evidence where relevant and reversal records when cancellation affected an in-window original. Source duplicates remain in evidence coverage counts but contribute once to economic totals.
@@ -27,8 +33,12 @@ Every value includes contributing_event_ids and coverage/review reasons. Cash to
 | reviewed_event_share | Reviewed versions / all available in-window events; null if no events |
 | accepted_event_share | Accepted after reconciliation / all available in-window events; null if no events |
 
-Epsilon is Decimal('0.01') BDT, used only for numerical stability. Population variance and Decimal square root use precision 28. High CV is descriptive; it does not imply inability to repay. Turnover is a circulation proxy, never monetary velocity. There is no feature weighting, scoring, imputation or predictive model.
+Epsilon is Decimal('0.01') BDT, used only for numerical stability. Population variance and Decimal square root use precision 28. High CV is descriptive; it does not imply inability to repay. Turnover is a circulation proxy, never monetary velocity. The deterministic feature engine performs no feature weighting, scoring, imputation or predictive modeling; those research interfaces remain downstream.
 
 Obligations may originate before the window; their due dates determine the punctuality denominator. Payment dates on/after scoring date are excluded conservatively because they have day-level precision. Missing receipts do not establish nonpayment. Only an explicitly complete payment record permits an unpaid obligation to count as unpaid. Negative balances remain observable but invalidate liquidity/turnover ratios. The caller must provide verified daily closing balance records, not transaction-level samples labeled complete.
 
 Full reversal semantics cancel the linked original and reversal as an economic pair, including originals outside the window. Partial reversals and mismatched fees require review; v1 does not model refunds as new standalone income. Cash-in/out and own-transfer fees require a separate explicitly external fee event if they are to enter cash-flow features. No consolidated multi-account balance aggregation is implemented. Coverage uses UTC full days; non-midnight scoring cannot certify all full-day ratios in v1.
+
+## UI and MCP presentation
+
+Feature Summary displays the actual 30/60/90 schema values, contributing_event_ids and reasons. None remains Unavailable, never zero. UI does not attest completeness from intake or calculate alternate financial features. Audit exposes event/snapshot lineage, and corrections reference newly computed versions while old snapshots remain unchanged. Project score remains downstream scoped research output, absent by default.

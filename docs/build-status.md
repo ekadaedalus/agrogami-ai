@@ -1,32 +1,45 @@
-# Build status
+# Build status ? local prototype completion
 
-Verified foundation pass: 2026-10-03 (Asia/Dhaka). Original project files were empty, with a pre-existing Python 3.14 virtual environment and editor settings. No .git directory existed. Existing directory names were preserved; downstream empty packages remain unimplemented.
+Starting checkpoint independently verified: Python 3.14.8 / Windows, **223 passed, 3 optional heavy tests deselected**. Current default suite: **251 passed, 3 deselected**. Original financial schemas/storage/reconciliation/features/fixtures were preserved. The original 107 foundation cases remain in the full green suite. No large models/datasets were downloaded.
 
-Phases 0–7 are implemented: inspection; agent contract/configuration/documentation; canonical/candidate/provenance/review schemas; SQLAlchemy persistence; deterministic validation/reconciliation and correction lineage; 20 reproducible synthetic scenarios; 30/60/90-day features; unit/integration tests. No datasets, checkpoints, model outcomes, deployment URLs or proof were invented.
+## Implemented and tested
 
-Complete default suite: `107 passed` on Python 3.14.8 / Windows. The final verification command is `.\.venv\Scripts\python.exe -m pytest -q`. Test files and subsystem evidence are listed in codex-handoff.md. Synthetic pipeline integration cases persist, reopen and compare all three window snapshots. No model downloads occur in the tests. Installation from pyproject.toml succeeded. Synthetic JSON export succeeded.
+- Existing deterministic foundation and second-pass extraction/model/governance/backend services.
+- Ten-page Streamlit UI using one HTTP client: overview, marked samples/image intake, candidate/provenance review, event ledger, three-window features, status/scope/null assessment, stored explanation/evaluation, immutable audit and docs.
+- Reviewer-only candidate retrieval, explicit synthetic document marker, database readiness and synchronized allowlisted project /docs. Swagger remains /api/docs; OpenAPI /api/openapi.json.
+- Separate official MCP SDK 1.30.0 Prism Streamable HTTP /mcp server: exactly four read-only tools, Bearer authentication, demo role reuse, restricted aggregate fairness, minimized payloads, explicit local host protection and sanitized SDK logging.
+- tests/integration/test_local_product.py: **28 passing cases**, including all-page AppTest, full UI flow, client/service correction history, docs/scope/path privacy and actual four-tool HTTP protocol. Existing backend docs assertion changed from reserved 404 to implemented 200; no financial-core test was altered.
+- Live API, Streamlit and Prism launched using isolated temporary SQLite storage; readiness/docs, synthetic review/correction/features/snapshots, official SDK initialize/list/read calls verified. Owned Windows process trees stopped and temporary storage cleanup passed.
+- Editable install .[test,local,trees,fairness], exact dependency imports and pip check passed on Python 3.14.8. Streamlit 1.65.0, MCP 1.30.0, Markdown 3.11 installed from wheels.
 
-PostgreSQL DDL compilation is tested; live PostgreSQL execution is not. Coverage is caller-attested. This foundation has no production migrations, authenticated reviewer workflow, real-data validation or trained models. Claims register limits every claim to its evidence.
+## Containers and operations
+
+Dockerfile, docker-compose.yml, .dockerignore, localhost-only publishing, nonroot runtime/shared private SQLite volume and API/UI healthchecks are implemented. Docker executable is unavailable: config/build/run NOT verified. Commands are in README; this is prepared local container support, not production deployment. Public deployment = PLANNED.
+
+Smoke: python scripts/smoke_test.py uses a configured AGROGAMI_SMOKE_TOKEN and intentionally appends marked synthetic evidence. Full isolated verification: python -m scripts.verify_local_runtime. Windows helpers use relative paths and disable access logs/Streamlit usage telemetry. Readiness reports missing optional models without failing the deterministic demo.
+
+## Privacy/security review
+
+No raw evidence/phone numbers/private paths/tokens in ordinary UI/client/MCP logs. SDK diagnostics retain structured severity only; a regression verifies untrusted log text is removed. Candidate raw fields are intentional reviewer/admin views, not logs. Source API metadata is allowlisted; upload filenames are not accepted; object names are UUIDs. /docs reads only a fixed document allowlist and escapes embedded HTML. Private data/cache/.env/database/log/temp paths are ignored for Git/container context.
+
+Local demo authorization remains dataset-wide, with tokenless API viewer access. No production identity, applicant isolation, encryption, rate limits, consent/retention/migrations or durable interrupted-snapshot recovery is claimed. Ledger correction and subsequent assessment journal are separate transactions.
+
+## External blockers and remaining human actions
+
+Real provider templates, consented financial annotations, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints and mature linked repayment outcomes remain absent. Real predictive/calibration/fairness/latency claims remain blocked. Manual external Codex/Claude/Antigravity MCP reuse, final UI review, Docker-capable validation, production operations/security, explicitly authorized public deployment, video recording and proof links remain human/external tasks. No fake result/URL/proof was created.
 
 ## ANTIGRAVITY HANDOFF
 
-Implemented: immutable source/candidate/event storage, safe intake metadata/logging, review rules, scoped duplicates, receipt/SMS pairing, linked reversals, own-transfer and receivable semantics, settlement cap, cash-free daily balance snapshots, atomic corrections/history, separate protected audit attributes and deterministic as-of features with null/coverage/contributor metadata.
+Historical heading retained for foundation contract compatibility. The user superseded the previous coding-agent handoff: Codex completed the feasible local product pass. There is no pending UI/docs/Prism implementation handoff. Read docs/codex-handoff.md ? Codex Final Implementation Record for current status. Next stage is human review and operational/data/proof work, not regenerating the core.
 
-Tested: schema/configuration/privacy contracts; matching and ambiguity; balance known/unknown equations; cash exclusion and settlement; 30/60/90-day boundaries; future event/ingestion/correction exclusion; missing-day statistics; punctuality denominator/payment completeness; balance nulls and complete-history ratios; immutable/atomic persistence; all 20 synthetic pipeline cases.
-
-Current commands (PowerShell, repository root):
+## Exact run commands
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+.\.venv\Scripts\python.exe -m uvicorn agrogami.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
+.\.venv\Scripts\python.exe -m streamlit run src/agrogami/ui/app.py --server.address=127.0.0.1 --server.port=8501 --server.headless=true --browser.gatherUsageStats=false
+.\.venv\Scripts\python.exe -m agrogami.mcp.server
 .\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe scripts/export_fixtures.py
+.\.venv\Scripts\python.exe -m scripts.verify_local_runtime
 ```
 
-Preserve Decimal money, aware UTC/as-of availability, append-only correction lineage, original candidates, explicit coverage and unknowns, and audit/underwriting separation. SQLAlchemy stores validated JSON envelopes with relational identity/lineage. Snapshot IDs are deterministic; random intake identifiers are not financial evidence. No downstream package name is evidence of implementation.
-
-Known blockers: real evidence/consent, verified provider templates, annotations, model checkpoints and outcome data are absent. Live PostgreSQL needs a server/driver. Production auth/encryption/migrations and multi-version CI are not implemented. Git was not initialized.
-
-Exact next phase: consented evidence acquisition and canonical annotation protocol, then verified deterministic provider/template ingestion adapters with candidate provenance and completeness validation. Evaluate those adapters before introducing OCR/transformer inference or any predictive training. ML, calibration/explanation/fairness, UI, MCP and deployment follow only with appropriate evidence and scope.
-
-Read first: AGENTS.md; docs/codex-handoff.md; docs/architecture.md; docs/data-contract.md; docs/feature-dictionary.md; docs/claims-register.md; this file. docs/codex-handoff.md contains the detailed continuation contract.
+Prism requires AGROGAMI_MCP_ENABLED=true and configured secret credentials. README contains clean-install/environment/Docker commands.

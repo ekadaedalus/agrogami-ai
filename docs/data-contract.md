@@ -1,5 +1,31 @@
 # Canonical data contract v1.0
 
+The original contracts below remain unchanged. New second-pass contracts live outside schemas/contracts.py.
+
+## Backend / model contracts
+
+SMSResult retains a CandidateExtraction, review status/reasons and nontransaction flag. Exact matches extract amount, fee, balance, type, reference, optional counterparty and explicit date/time/offset; missing timezone/time is never filled from ingestion time. Source offsets remain half-open and hash-linked. Actual production-provider templates are not supported.
+
+TokenSample preserves dataset/sample identity, text, tokens, aligned source offsets and valid BIO labels. Labels are O plus B/I variants for AMOUNT, FEE, BALANCE, DATE, TIME, TXN_ID, COUNTERPARTY and TXN_TYPE. I-X can follow only B-X/I-X. Viterbi decoding chooses valid sequences; it does not silently reinterpret invalid monetary facts. DocumentAnnotation stores declared local image, text or words/normalized boxes/BIO labels. Layout base weights without financial label metadata are rejected.
+
+DatasetIdentity stores original task/scope/limitations. RiskDataset stores explicit matrix/labels/protected-column exclusions/sample IDs and optional aligned decision/availability times. LoanOutcome handles initial-current eligibility, 180-day follow-up and 90-DPD observations; incomplete follow-up without an observed positive is censored. No post-decision feature is accepted. Public original targets remain distinct from the project target.
+
+ModelArtifact includes UUID/version/algorithm, validation scope, dataset/target identity, ordered feature names/schema/window, training sample IDs, protected-column exclusion and limitations. Scopes: REAL_LINKED_OUTCOME_EXPERIMENT, PUBLIC_DATASET_BENCHMARK, SYNTHETIC_DEMO, UNTRAINED. Scope is caller-declared metadata plus training-contract checks, not independent authenticity or validation proof. Prediction requires a complete finite numeric vector, with no hidden null imputation or protected attribute input. JSON logistic parameters and native tree formats avoid loading arbitrary model pickle files.
+
+CalibrationArtifact includes model UUID/version, training and calibration identities, distinct calibration IDs, method/version and fitted sigmoid parameters or monotonic isotonic thresholds. Sigmoid operates on clamped raw-probability logits; isotonic requires at least 100 observations, at least 10 per class and 10 distinct raw probabilities. Thresholds are research gates, not assurances of statistical adequacy for production. Calibration slope/intercept and reliability bins are numerical evaluation utilities only.
+
+DisplayScore preserves original calibrated probability, unclipped formula and rounded clipped integer 300–850. Probability is clamped internally to [1e-9,1-1e-9]. Formula: 600+40*log2((1-p)/(9p)), then clipping/rounding. It is an Agrogami project score, not FICO/bureau-equivalent or an approval decision. Scaling does not create calibration.
+
+TreeExplanation preserves model UUID/version, raw-margin target, ordered feature definitions, background identity, base value, contributions, target value and additivity error. EvidenceReason preserves controlled code, required evidence, features/window/observed values, contributor IDs and source references. Missing receipts cannot create late-payment reasons. SHAP is associational, not causal.
+
+FairnessReport stores explicit-group counts, labeled-decided denominators, small-group flags, TPR/FPR/selection/review rates, Wilson 95% intervals, equalized-odds difference or null reasons and a declared positive-label meaning. Protected membership must be separately supplied; positive outcome/selection meaning must not be mistaken for loan approval. TPR/FPR exclude abstentions/unknown labels and report abstention separately. Undefined class rates stay null.
+
+AssessmentSnapshot contains assessment/applicant/time/status, evidence version IDs, schema/versioned feature snapshot, model artifact/scope, raw/calibrated probabilities, unclipped/display scores, calibrator/dataset identity, TreeSHAP metadata, controlled reasons, fairness/policy metadata, limitations, creation time and optional prior assessment ID. Statuses: READY, NEEDS_REVIEW, INSUFFICIENT_EVIDENCE, ILLUSTRATIVE. No VALIDATED state exists. Review/insufficient states cannot carry probabilities or scores. Complete research computation is not a lending decision. Full snapshots are insert-only in the backend journal; application corrections automatically append unscored review snapshots with unknown fresh coverage and optional predecessor, rather than editing prior assessments. Explicit reassessment requires new verified coverage; low-level Store.correct remains ledger-only.
+
+Job exposes safe UUIDs, candidate IDs, optional pending event ID, terminal/review/blocker status/reasons/time. It does not expose raw bytes or private storage paths. CandidateAcceptance records original candidate, new accepted event, reason/reviewer/time; reviewer-supplied canonical facts must pass deterministic rules and preserve source identity/hash. EvaluationRun stores actual locally computed aggregate metrics, explicit dataset/scope/limitations and optional separately restricted fairness report. No evaluation exists by default.
+
+## Preserved canonical event contract
+
 Authoritative implementation: src/agrogami/schemas/contracts.py. Contracts forbid extra fields and attribute mutation. Monetary inputs accept Decimal, integer or decimal strings; floats and nonfinite values are rejected for amount/fee/balance. Datetimes must be timezone-aware and canonical event timestamps normalize to UTC. UUIDs identify records; intake generates UUID4, synthetic fixtures use stable UUID5.
 
 Source types: KHATA_IMAGE, UTILITY_DOCUMENT, MOBILE_MONEY_SMS, PUBLIC_BENCHMARK, SYNTHETIC_FIXTURE. Direction: INFLOW, OUTFLOW, NEUTRAL, UNKNOWN. Transaction types: RECEIPT, SEND_MONEY, CASH_IN, CASH_OUT, PAYMENT, REVERSAL, TRANSFER, CREDIT_SALE, RECEIVABLE, PAYABLE, SETTLEMENT, OTHER, BALANCE_SNAPSHOT. Validation: ACCEPTED, NEEDS_REVIEW, REJECTED. Assessment: EVIDENCE_PENDING, REVIEW_REQUIRED, FEATURES_READY. These states do not describe an implemented predictive assessment.
@@ -12,7 +38,7 @@ BALANCE_SNAPSHOT represents a verified daily closing balance on days with or wit
 
 Provenance requires SHA-256 and supports 1-based document page plus region points (two-point bounding rectangle or polygon), and half-open SMS spans [start,end), provider/template metadata. Both span endpoints are required together. Intake hashes bytes, creates an ingestion timestamp and accepts caller metadata. Hash equality shows byte integrity, never authenticity, ownership or truth. Coordinate units, image size and text encoding must be supplied by a future verified adapter; v1 does not validate spans against raw content.
 
-CandidateExtraction stores source ID, immutable ID, timestamp and a mapping of CandidateField values. Each field preserves raw_value, nullable normalized_value, Decimal confidence [0,1], provenance/location and parser name/version. Candidate validation checks amount, timestamp and direction. An ACCEPTED candidate review means those fields passed rules; it does not create an accepted canonical event. No OCR/SMS parser or model result is fabricated. Corrections never edit candidates.
+CandidateExtraction stores source ID, immutable ID, timestamp and a mapping of CandidateField values. Each field preserves raw_value, nullable normalized_value, Decimal confidence [0,1], provenance/location and parser name/version. Candidate validation checks amount, timestamp and direction. An ACCEPTED candidate review means those fields passed rules; it does not create an accepted canonical event. Synthetic SMS parsing and local model adapters produce candidates; no real-model result is fabricated. Corrections never edit candidates.
 
 ReviewDecision stores subject ID, status, reason tuple and rule version. Canonical events also carry review reasons for ambiguous amount/ownership/match, contradictory direction, missing evidence, unsupported templates, confidence, currency, implausible amounts, invalid links and balance inconsistency. Balance checking returns true/false/unknown; its caller must route false to review. This package does not automatically certify stream completeness.
 
@@ -21,3 +47,9 @@ Correction records original/new event IDs, nonempty reason, reviewer alias match
 Coverage is a caller-attested contract: applicant, known_at, complete observed/balance/obligation UTC dates, optional evidence event IDs and reasons. Event presence alone never implies completeness. Coverage contributors are restricted to available events; the caller remains responsible for verifying the attestation. FeatureSnapshot stores applicant, scoring time, supported window, version and named FeatureValues. Each value has contributing event IDs and reasons. Null means unknown/unavailable; tuples enumerate dates/reasons, mappings represent source mix, Decimal values represent monetary/ratio metrics.
 
 ProtectedAuditAttributes is separately persisted with applicant, attributes and consent reference. It has no baseline feature input path. Assessment stores only applicant, scoring time and evidence status. No score, model result or protected attribute is embedded in it.
+
+## Local presentation and inspection contracts
+
+DocumentRequest adds synthetic: bool=false; intake persists this explicit marker and accepts no upload filename/path. GET /api/v1/candidates/{id} requires reviewer/admin and intentionally returns original field candidates/provenance, never source object paths. APIClient validates typed jobs/candidates/events/snapshots; other JSON views preserve the backend contract without financial transformations. Unsupported input and absent checkpoints remain review/blocker states.
+
+Prism exposes accepted event versions with allowlisted fields and stored assessment/explanation/aggregate fairness values. Unknown applicant ledger is empty, not fabricated; unknown snapshot/evaluation is a safe tool error. Viewer cannot access fairness groups. No mutation or risk/explanation recalculation is performed.

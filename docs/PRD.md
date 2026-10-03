@@ -1,11 +1,11 @@
-# Product requirements: deterministic evidence foundation
+# Product requirements: local research prototype
 
-Agrogami's current deliverable is an auditable evidence ledger and descriptive financial features for small-business applicants. It accepts structured evidence records and synthetic examples. It provides no credit score, approval recommendation or real-model extraction.
+Agrogami AI is a traceable evidence/research workflow for human reviewers of mobile-money messages and paper records. It is not a lender or validated creditworthiness service.
 
-Users of the library can register source integrity metadata, preserve field candidates, validate canonical events, review ambiguous facts, append corrections, recover previous versions and compute descriptive windows as of an application timestamp. Review is a library workflow with a demo-safe reviewer alias, not an implemented UI or access-control system.
+Implemented: deterministic canonical ledger/features, candidate/model adapters, scoped research risk/calibration/explanation/fairness services, immutable snapshots, FastAPI, ten-page Streamlit application, synchronized project docs and authorized four-tool read-only Prism. Application/domain services are the sole source of financial logic.
 
-Acceptance criteria: Decimal money; aware UTC timestamps; separate candidate originals; source provenance; one economic payment for a matching receipt/SMS reference; transfers and receivables excluded from income; linked full reversals cancelled; unknown balances and obligations remain null; all features retain contributors and reasons; no model downloads in tests; separate protected audit table.
+Acceptance criteria: Decimal money and aware timestamps; original candidates and hash/span/region provenance preserved; receipt/SMS reconciliation and transfer/receivable/reversal semantics; unknown evidence and explicit coverage; accepted/as-of-only 30/60/90 features; protected audit separation; scoped/null assessment output; immutable review/history; offline default tests; no invented checkpoints/data/metrics/deployment proof.
 
-The included 20 synthetic scenarios exercise ordinary flows and incomplete/contradictory evidence. Acceptance evidence is recorded in build-status.md and claims-register.md. It establishes deterministic software behavior only.
+The included synthetic intake/review/feature/assessment/correction flow is usable and tested through UI/API/MCP. Real trained financial extraction and linked-outcome validation remain blocked. Docker artifacts exist but their build/runtime is unverified on the current host.
 
-Deferred phases: consented evidence acquisition and annotation; verified parser/provider adapters; model extraction evaluation; predictive-model development with temporal splits; calibration/explanation/fairness evaluation; UI and human-review authorization; MCP integration; private deployment and operational/security validation; public demonstration only after verified evidence and explicit authorization.
+Next human work: manual UI review/external MCP client invocation, Docker-capable validation, real datasets/annotations/checkpoints/outcomes, production security/operational readiness, explicitly authorized deployment and evidence-based proof recording. No handoff to another coding agent is required for the local implementation pass.

@@ -1,0 +1,80 @@
+{
+  "python": "3.14.8",
+  "platform": "Windows",
+  "packages": {
+    "fastapi": {
+      "version": "0.142.2",
+      "status": "imported"
+    },
+    "uvicorn": {
+      "version": "0.54.0",
+      "status": "imported"
+    },
+    "Pillow": {
+      "version": "12.3.0",
+      "status": "imported"
+    },
+    "numpy": {
+      "version": "2.5.3",
+      "status": "imported"
+    },
+    "starlette": {
+      "version": "1.7.0",
+      "status": "imported"
+    },
+    "httpx2": {
+      "version": "2.13.1",
+      "status": "imported"
+    },
+    "numba": {
+      "version": "0.68.0",
+      "status": "imported"
+    },
+    "llvmlite": {
+      "version": "0.50.0",
+      "status": "imported"
+    },
+    "scikit-learn": {
+      "version": "1.9.1",
+      "status": "imported"
+    },
+    "scipy": {
+      "version": "1.18.1",
+      "status": "imported"
+    },
+    "lightgbm": {
+      "version": "4.7.0",
+      "status": "imported"
+    },
+    "xgboost": {
+      "version": "3.4.1",
+      "status": "imported"
+    },
+    "shap": {
+      "version": "0.52.0",
+      "status": "imported"
+    },
+    "fairlearn": {
+      "version": "0.14.0",
+      "status": "imported"
+    },
+    "transformers": {
+      "status": "not_installed"
+    },
+    "torch": {
+      "status": "not_installed"
+    },
+    "streamlit": {
+      "version": "1.65.0",
+      "status": "imported"
+    },
+    "mcp": {
+      "version": "1.30.0",
+      "status": "imported"
+    },
+    "Markdown": {
+      "version": "3.11",
+      "status": "imported"
+    }
+  }
+}

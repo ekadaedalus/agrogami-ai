@@ -13,6 +13,9 @@ model_cache/
 .coverage
 dist/
 build/
+*.log
+uploads/
+.streamlit/secrets.toml
 
 .pytest_temp/
 .pytest_cache/

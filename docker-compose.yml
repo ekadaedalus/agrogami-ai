@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    ports: ["127.0.0.1:8000:8000"]
+    environment:
+      AGROGAMI_DATABASE_URL: sqlite:////app/private_data/agrogami.db
+      AGROGAMI_PRIVATE_DATA_DIR: /app/private_data
+      AGROGAMI_DEMO_TOKENS: ${AGROGAMI_DEMO_TOKENS:-{}}
+    volumes: ["private_data:/app/private_data"]
+  ui:
+    build: .
+    command: ["python", "-m", "streamlit", "run", "src/agrogami/ui/app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true", "--browser.gatherUsageStats=false"]
+    ports: ["127.0.0.1:8501:8501"]
+    environment:
+      AGROGAMI_API_URL: http://api:8000
+      AGROGAMI_PUBLIC_API_URL: http://127.0.0.1:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3)"]
+  prism:
+    build: .
+    profiles: ["mcp"]
+    command: ["python", "-m", "agrogami.mcp.server"]
+    ports: ["127.0.0.1:8001:8001"]
+    environment:
+      AGROGAMI_DATABASE_URL: sqlite:////app/private_data/agrogami.db
+      AGROGAMI_PRIVATE_DATA_DIR: /app/private_data
+      AGROGAMI_MCP_ENABLED: "true"
+      AGROGAMI_MCP_HOST: 0.0.0.0
+      AGROGAMI_MCP_AUTH_TOKEN: ${AGROGAMI_MCP_AUTH_TOKEN:-}
+      AGROGAMI_DEMO_TOKENS: ${AGROGAMI_DEMO_TOKENS:-{}}
+    volumes: ["private_data:/app/private_data"]
+    healthcheck:
+      disable: true
+volumes:
+  private_data:

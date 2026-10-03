@@ -1,5 +1,7 @@
 # Codex Handoff
 
+The sections through "Claims That Must NOT Yet Be Made" record the first-pass baseline. First/second-pass sections below are historical records. The authoritative current completion record is the appended "Codex Final Implementation Record"; previous exclusions/handoff tasks are superseded. The original deterministic core remains unchanged; newer interfaces do not imply real-model validation.
+
 ## Repository State
 
 At the start, AGENTS.md, README.md, .gitignore, .env.example, pyproject.toml, requirements.txt, all docs and src package initializers were empty. tests/, sample_data/, notebooks/ and scripts/ had no implementation. A .venv (Python 3.14.8) and .vscode configuration existed and were retained. No .git directory existed; Git status could not run. Directory names were preserved. This is the authoritative greenfield foundation, not a modification of an earlier system.
@@ -132,3 +134,166 @@ No blockers remain for running the deterministic suite. Real datasets, consent, 
 ## Claims That Must NOT Yet Be Made
 
 Do not claim real-provider extraction accuracy, transformer inference/training, credit-risk prediction, repayment performance/AUC, calibration, fairness, bias removal, SHAP explanations, latency targets, production security/readiness, successful deployment, public URLs, Streamlit UI, working Prism MCP, external MCP reuse or video/demo proof. Synthetic fixtures/test counts demonstrate deterministic software behavior only. Update claims-register.md only with actual new evidence.
+
+# Codex Second-Pass Handoff
+
+## Preserved baseline
+
+Read AGENTS.md and the first-pass docs before changes. The exact requested baseline command passed all 107 tests on Python 3.14.8 before changes. The original ten test files were rerun during extension and again passed 107 tests. Original canonical schemas, storage.py, reconciliation rules, feature engine and fixtures were not rewritten or regenerated. config.py gained new settings only. Backend persistence uses independent metadata and a new insert-only journal instead of modifying the seven core tables.
+
+## New components implemented
+
+- Strict invented bKash-like/Nagad-like parser covering receipt/send-money/cash-in/cash-out/payment/reversal and nontransaction messages; anchored amount/fee/balance fields, explicit date/time offsets and source spans. Unsupported/ambiguous/missing-time messages remain candidates for review.
+- Financial BIO token dataset contracts, transition validation and constrained Viterbi decoding. DeBERTa-family local adapter and explicit DeBERTa-v3-small training/inference architecture scaffold, requiring a real local financial checkpoint/label manifest.
+- Raster loading, legibility warnings, explicit orientation, small-angle deskew, resizing, grayscale/autocontrast, line regions and output-to-original coordinate mapping. Local TrOCR recognition and LayoutLMv3 layout adapters return candidates only. Generic layout weights are not a financial extractor.
+- Dataset identities, local risk CSV/FUNSD/BanglaWriting manifest adapters and configurable Berka normalization boundary. Original benchmark tasks/limitations remain separate. Research loan labels implement initial-current eligibility, >=90 DPD in 180 days and censoring. Temporal matrices reject post-decision availability; protected columns are excluded.
+- Common scoped risk interface, standardized regularized logistic baseline, LightGBM primary and XGBoost challenger fitting/native-or-JSON persistence. Scopes distinguish real-linked experiments, public benchmarks, synthetic demos and untrained artifacts.
+- Separate sigmoid/Platt-style and isotonic calibration, disjoint identity checks, model UUID/version binding, Brier/log loss/reliability curve/slope/intercept utilities and deterministic project display score.
+- Raw-margin TreeSHAP with declared feature definitions/background, native-target additivity checks, and controlled evidence reasons with source/event lineage. LATE_VERIFIED_BILLS requires actual late dates, never missing receipts. LOWER_TAIL_LIQUIDITY requires complete balance evidence. INSUFFICIENT_EVIDENCE remains descriptive.
+- Offline group counts, TPR/FPR/selection/review rates, Wilson intervals, small/undefined-group flags and equalized-odds difference. Fairlearn ThresholdOptimizer wrapper is offline only and keeps protected inputs separate.
+- Immutable full assessment snapshots with evidence, features, scoped model, raw/calibrated probabilities, score, calibrator/dataset identity, explanations/policy/limitations and optional predecessor. Corrections through the application/API automatically append unscored NEEDS_REVIEW snapshots with explicitly unknown fresh coverage. Unknown/review evidence or absent artifacts withholds scores. Public benchmark scoring is withheld; synthetic computations are ILLUSTRATIVE. READY is a complete research computation, not VALIDATED underwriting.
+- Application services, private UUID source objects, atomic source/candidate/event/job insertion, explicit candidate-review audits, event corrections, immutable evaluation records and versioned FastAPI routes. Job outcomes are synchronous intake records, not an implemented worker queue.
+- Local viewer/reviewer/admin token boundary; no role-header trust. Review/assessment creation and protected fairness retrieval require reviewer/admin. Error responses/source metadata omit raw input and private object paths.
+
+## New tests and verification
+
+New files: test_sms_parser.py, test_extraction_adapters.py, test_local_loading_fakes.py, test_dataset_adapters.py, test_risk_governance.py, test_explanations_fairness.py, test_backend_api.py and test_research_scripts.py. They cover parser semantics/spans/review, BIO constraints/local loaders with fakes, preprocessing/provenance, scopes/censoring/leakage, numerical baseline/calibration/score, native tree/TreeSHAP and offline fairness, assessment immutability/unknowns, API permissions/routes/privacy and local script end-to-end execution. Optional tests/heavy/test_local_checkpoints.py requires explicitly supplied local artifacts; default selection excludes it and never downloads models.
+
+The review-to-assessment automatic append was demonstrated missing by a failing regression (one stored assessment instead of two), then fixed in the new application service. The original core correction/storage logic was not changed. Core event/correction audit and subsequent review assessment use separate transactions; process failure between commits requires explicit recovery. Direct Store.correct remains ledger-only. Use ApplicationService.review for backend corrections and the applicant assessment-history endpoint to discover new snapshots.
+
+Final complete suite: **223 passed, 3 optional heavy checkpoint tests deselected**, Python 3.14.8 / Windows. Original **107 tests separately passed after extension**. All 116 new default cases passed. No model/dataset download occurs in tests. `pip check` reports no broken requirements; numerical/native imports succeeded. Exact installed versions are in dependency-compatibility.json. Do not confuse the initial network-restricted PyPI attempt or unfinished-install collection with a Python compatibility failure.
+
+| New subsystem | Test file | Passing cases |
+|---|---|---:|
+| Strict synthetic SMS semantics/spans/review | tests/unit/test_sms_parser.py | 21 |
+| BIO constraints, preprocessing/provenance and fake extraction | tests/unit/test_extraction_adapters.py | 18 |
+| Fake local loader flags/architecture and training preflight | tests/unit/test_local_loading_fakes.py | 4 |
+| Local public-identity/document manifest adapters | tests/unit/test_dataset_adapters.py | 3 |
+| Scopes, outcomes, leakage, native risk/calibration/display score | tests/unit/test_risk_governance.py | 24 |
+| Native/fake TreeSHAP, controlled reasons and offline Fairlearn/metrics | tests/unit/test_explanations_fairness.py | 9 |
+| API/service startup, routes/roles/privacy and immutable correction assessments | tests/integration/test_backend_api.py | 34 |
+| Local risk/calibration/evaluation/report persistence and extractor evaluation/help | tests/integration/test_research_scripts.py | 3 |
+
+Native LightGBM 4.7.0, XGBoost 3.4.1, SHAP 0.52.0 and Fairlearn 0.14.0 toy smoke tests passed. XGBoost's categorical default initially caused a SHAP interventional error; explicit `enable_categorical=False` resolved it without changing the target/background. Starlette's deprecated httpx test transport was replaced by httpx2. Optional heavy tests are available but unexecuted because actual trained checkpoints are absent.
+
+## Model adapters and missing artifacts
+
+Present: DebertaAdapter, TrOCRAdapter, LayoutLMv3Adapter, LogisticRiskModel, TreeRiskModel and Calibrator. No trained financial DeBERTa, TrOCR or LayoutLMv3 checkpoint was supplied, trained or invented. No real linked-outcome risk/calibration artifact exists. Generic base checkpoints require explicit local provisioning and verified architecture; token heads require the financial BIO label manifest. Default startup loads no checkpoint or risk model.
+
+Extraction config paths are optional: AGROGAMI_DEBERTA_CHECKPOINT, AGROGAMI_TROCR_CHECKPOINT, AGROGAMI_LAYOUTLMV3_CHECKPOINT. Set enable_real_models=true and demo_mode=false only for explicitly supplied local extraction artifacts. Transformers/torch are optional; prebuilt-wheel resolution was verified without installing or executing trained models. Real inference/training remains blocked by checkpoints/annotations, not simulated as implemented results.
+
+## Risk, calibration, explainability and fairness status
+
+Risk code can fit explicitly supplied scoped datasets; only tiny synthetic tests exercise fitting here. Censored rows are excluded. Public benchmark artifacts cannot produce borrower assessment scores. Logistic parameters use safe JSON; trees use native formats. Artifact scope is declared research metadata, not authenticity or external validation proof.
+
+Calibration uses a separate holdout with disjoint stable sample IDs. Isotonic has minimum support gates (100 samples, 10 per class, 10 distinct predictions). Neither gates nor score scaling prove real calibration. The project display score is not FICO/bureau-equivalent or an approval decision; preserve both raw and calibrated probabilities and score values.
+
+TreeSHAP operates only on supported binary tree raw margin/log-odds, validates additivity, and preserves background identity/definitions. It is not causality or an attribution to calibrated score. Configure a local background explicitly; otherwise snapshots have descriptive reasons and null TreeSHAP with a limitation. No fabricated explanation is returned.
+
+Fairness metrics are offline descriptive aggregate calculations with explicit membership, uncertainty and undefined denominators. Fairlearn optimization is offline research only. No protected attributes enter baseline feature/risk vectors; no future parity, production fairness or real subgroup finding is claimed. Exact native import/smoke-test compatibility appears in the final dependency report.
+
+## API status and exact commands
+
+Swagger /api/docs; OpenAPI /api/openapi.json; reserved /docs is 404. All requested v1 routes are implemented, plus explicit candidate acceptance. Read docs/backend-api.md for contracts. Default artifacts are absent: documents report BLOCKED_MODEL_ARTIFACT; unsupported SMS retains candidates; incomplete assessments withhold probabilities/scores. No UI, MCP, Docker, live documentation module, deployment or proof link exists.
+
+PowerShell from repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install --only-binary=:all: -e ".[test,trees,fairness]"
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m uvicorn agrogami.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
+.\.venv\Scripts\python.exe scripts/dependency_report.py --output docs/dependency-compatibility.json
+```
+
+Optional actual extraction dependencies: `pip install --only-binary=:all: -e ".[models]"` using this environment. Optional local-load tests: `python -m pytest -m heavy`, with AGROGAMI_TEST_*_CHECKPOINT explicitly configured. No large model download occurs automatically.
+
+Use ignored .env for AGROGAMI_DEMO_TOKENS JSON token→viewer/reviewer/admin mapping; tokens never belong in Git. Header: X-Agrogami-Token. Missing token is viewer, invalid credential 401, unauthorized review 403. This is local demo auth, not production identity or applicant isolation. Keep source objects in ignored private_data or a private path outside Git.
+
+Risk settings: AGROGAMI_RISK_MODEL_PATH and AGROGAMI_CALIBRATOR_PATH together; non-synthetic artifacts need explicitly enabled research mode. Optional AGROGAMI_SHAP_BACKGROUND_PATH JSON includes identity, rows and feature_definitions. No paths are API response fields.
+
+Scripts: train_extractor.py/evaluate_extractor.py for explicit local annotations/checkpoints or prediction pairs; train_risk.py/evaluate_risk.py for disjoint scoped splits and optional separate audit groups. `evaluate_risk.py --persist` appends actual local report metadata for evaluation routes. Use --help for exact required flags. These scripts are not evidence of real financial training or evaluation.
+
+## Exact next Antigravity tasks
+
+1. Read AGENTS.md, this second-pass section, architecture.md, data-contract.md, feature-dictionary.md, datasets.md, backend-api.md, claims-register.md and build-status.md.
+2. Build Streamlit review/assessment flows against the backend. Make scope, nulls, evidence coverage, review state and project-score limitations visible; never substitute invented scores/checkpoints. Preserve immutable review/assessment history and demo authorization.
+3. Implement the live project documentation web module at /docs without moving Swagger/OpenAPI from /api/docs and /api/openapi.json.
+4. Implement Agrogami Prism MCP over application/domain services, preserving authorization, protected-audit separation and point-in-time evidence; do not expose raw source bytes through generic tools.
+5. Prepare Docker/private deployment only after appropriate runtime configuration, migrations, authorization, storage/retention and operational tests. Public deployment/demo proof requires explicit authorization and actual evidence. No URL/video/result should be fabricated.
+
+Real-data/checkpoint acquisition and validation remain parallel external work: consent, verified provider templates, financial BIO/transcript/layout annotations, actual local checkpoints, longitudinal current-loan follow-up and repayment outcomes. Do not merge unrelated public datasets and present them as Agrogami end-to-end validation. Production auth/encryption, applicant isolation, migrations, crash recovery, PDF handling and accurate word segmentation remain explicit limitations.
+
+## Unresolved dependency issues / claims boundary
+
+No interpreter downgrade occurred. Optional transformer wheel resolution succeeds for Python 3.14, but actual checkpoint execution has not been tested. Exact installed numerical versions, import outcomes and any native errors are captured in dependency-compatibility.json. Network sandbox/download issues do not establish library incompatibility.
+
+Never claim real extraction accuracy/F1/CER, real predictive AUC/PR-AUC/KS, calibration/Brier validity, group fairness guarantees, latency targets, lender/provider integration, production identity/security, external MCP reuse, deployment URLs or video proof. Tests on explicitly synthetic data establish software behavior only. Keep claims-register.md evidence-specific.
+
+# Codex Final Implementation Record
+
+## Verified Starting State
+
+Python 3.14.8 / Windows; 223 default tests passed and 3 optional local-checkpoint tests deselected before changes. Read the required agent/contracts/docs/configuration and source/test trees. No repository/core regeneration occurred. Financial schemas, storage, reconciliation, features and existing fixtures remain unchanged.
+
+## Product Surface
+
+Streamlit is implemented at src/agrogami/ui/app.py with ten coherent pages, typed central APIClient, safe formatting and marked samples. It performs no financial arithmetic. Candidate/provenance review and correction call authorized backend services. Unknown values/coverage/scores remain unavailable; scope and project-score/SHAP limitations are visible. Full UI synthetic flow and all pages passed AppTest. Manual browser review is still human work.
+
+## Project Docs
+
+/docs renders an allowlisted escaped Markdown collection synchronized with repository docs; includes overview/problem/users/architecture/contracts/extraction/features/risk/calibration/score/explanation/fairness/privacy/evaluation/datasets/API/Prism/CloudCamp/environment/demo/limitations/changelog. Swagger remains /api/docs and schema /api/openapi.json. No CMS or user-selected filesystem path exists.
+
+## MCP
+
+Agrogami Prism uses official MCP SDK 1.30.0, stateless Streamable HTTP /mcp, separate local process/shared database. Exactly four tools: get_evidence_ledger, get_assessment_snapshot, get_explanation_factors, get_fairness_audit. Tools read existing application/ledger/journal records, never write or compute model values. Bearer credentials reuse demo viewer/reviewer/admin; dedicated MCP token grants viewer only; fairness requires reviewer/admin. Missing/invalid HTTP credentials are 401. Local DNS-rebinding protection remains enabled. Outputs omit raw source bytes/account IDs/counterparties/transaction references/training sample IDs/row-level protected records. SDK log diagnostics are redacted to structured severity.
+
+Actual four-tool HTTP protocol, registration/authentication/restrictions/unknown records/minimization/read-only behavior passed offline tests. Live official SDK initialization/list/reads also passed. External Codex/Claude/Antigravity invocation is separately PLANNED, not inferred from these tests. CloudCamp was not contacted and receives no product data.
+
+## Integration
+
+Marked synthetic SMS ? hash/source intake ? candidate spans ? pending canonical event ? authorized corroborated correction ? accepted ledger ? core reconciliation/features ? null/insufficient assessment with real reasons ? immutable journal. Further correction preserves originals, references new versions in recomputed features and appends a fresh unscored review assessment. Original assessment retrieval remains identical. UI and smoke tests expose the same service path. Missing checkpoints/coverage remain honest blockers, not fake low scores.
+
+## Docker
+
+Dockerfile, compose API/UI/optional Prism profile, private shared SQLite volume, nonroot Python 3.14 runtime, localhost published ports, environment tokens and API/UI healthchecks are prepared. Docker is unavailable here; config/build/run remain unverified. No public deployment occurred. README gives docker compose config/up/down commands.
+
+## Tests
+
+Final full default suite: **251 passed, 3 deselected** on Python 3.14.8. All 223 prior cases remain green, including original 107. Existing API /docs assertion changed intentionally from reserved 404 to implemented 200. New test_local_product.py has **28 passing cases** covering client/UI end-to-end, all pages, candidate/scope/privacy/docs/readiness, immutable corrections and MCP protocol/security/logging. No financial-core test was changed. Default tests need no internet, large models, public datasets, CloudCamp/external clients or PostgreSQL. pip check and editable installation succeeded. Exact dependency imports are in dependency-compatibility.json.
+
+## Runtime Verification
+
+API, Streamlit and Prism were actually started with isolated temporary SQLite/private storage. Verified API readiness/docs/intake/review/features/snapshots and UI health; official SDK initialized/listed/read Prism records. A Windows SQLite cleanup race was observed and fixed by stopping only owned process trees; final live verification exited zero after cleanup. No test process is intentionally left running. AppTest exercised actual UI sessions separately.
+
+Exact commands, repository-root PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install --only-binary=:all: -e ".[test,local,trees,fairness]"
+.\.venv\Scripts\python.exe -m uvicorn agrogami.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
+.\.venv\Scripts\python.exe -m streamlit run src/agrogami/ui/app.py --server.address=127.0.0.1 --server.port=8501 --server.headless=true --browser.gatherUsageStats=false
+.\.venv\Scripts\python.exe -m agrogami.mcp.server
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m scripts.verify_local_runtime
+```
+
+Prism requires explicitly enabled MCP and configured ignored credentials. Existing running API smoke uses AGROGAMI_SMOKE_TOKEN with scripts/smoke_test.py. README documents Docker commands and all environment settings.
+
+## External Blockers
+
+Real provider templates, consented annotated financial datasets, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints, initially-current mature loan follow-up and representative linked repayment outcomes are absent. Optional transformer stack is not installed/executed; real loading/training accuracy remains blocked. Docker executable is unavailable. No external credentials/public deployment target or external-client proof was provided.
+
+## Claims Still Blocked
+
+Real extraction F1/CER/Bangla accuracy, borrower AUC/PR-AUC/KS/calibration/fairness/latency, production security/legal compliance, universal parity, FICO equivalence, live providers/lenders, external MCP reuse and public/video proof cannot be claimed. Scoped research utilities and synthetic software tests do not establish those claims. Protected attributes remain offline-only separate inputs.
+
+## Remaining Human Actions
+
+Manual UI review and external-client MCP invocation; Docker-capable config/build/runtime checks; actual dataset/consent/annotation/checkpoint/outcome acquisition and validation; production authorization/applicant isolation/encryption/retention/migrations/crash recovery; explicitly authorized public deployment; video recording and real proof-link insertion. Codex completed the feasible local implementation; this record is not a transfer to another coding agent. The repository is ready for local research review and deployment preparation, not yet production financial/public deployment certification.
+
+## Completion-Pass File Inventory
+
+Created (18): src/agrogami/api/project_docs.py; src/agrogami/ui/__init__.py, app.py, api_client.py, formatting.py, samples.py; src/agrogami/mcp/server.py; scripts/smoke_test.py, verify_local_runtime.py, run_api.ps1, run_ui.ps1, run_mcp.ps1, run_tests.ps1; tests/integration/test_local_product.py; docs/local-demo.md; Dockerfile; docker-compose.yml; .dockerignore.
+
+Modified (25): AGENTS.md; README.md; pyproject.toml; .env.example; .gitignore; src/agrogami/config.py, application.py, api/app.py; scripts/dependency_report.py; tests/integration/test_backend_api.py (only reserved docs assertion); docs/PRD.md, architecture.md, data-contract.md, feature-dictionary.md, evaluation-protocol.md, responsible-ai.md, limitations.md, claims-register.md, build-status.md, codex-handoff.md, mcp.md, datasets.md, backend-api.md, dependency-compatibility.md, dependency-compatibility.json.
+
+requirements.txt was inspected and retained because it delegates to pyproject.toml. All four PowerShell helpers passed parser syntax checks. Docker executable is absent; PyYAML is also not installed, so no Docker CLI/config/build or independent YAML-parser validation is claimed. These are unavailable tools, not Python library incompatibilities.

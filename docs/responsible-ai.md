@@ -1,9 +1,21 @@
 # Responsible use
 
-The current system computes descriptive evidence features; it does not predict repayment or automate a credit decision. Incomplete records can reflect access barriers, provider availability or documentation practices. Preserve unknowns, review reasons and contributor IDs throughout downstream work. Variability, missing receipts and sparse digital activity do not imply inability or unwillingness to repay.
+The system computes descriptive evidence features and supports scoped numerical research models; it has no validated repayment predictor or automated credit decision. Incomplete records can reflect access barriers, provider availability or documentation practices. Preserve unknowns, review reasons and contributor IDs. Variability, missing receipts and sparse digital activity do not imply inability or unwillingness to repay.
 
-Protected audit attributes are separately persisted with consent metadata and are excluded from baseline feature APIs. This separation is tested software behavior, not a fairness certification. Real-data use requires informed consent, lawful purpose, minimization, retention policy and access controls. No consent system, encryption/key management or reviewer authorization is implemented.
+Protected audit attributes are separately persisted with consent metadata and are excluded from baseline feature APIs. This separation is tested software behavior, not a fairness certification. Real-data use requires informed consent, lawful purpose, minimization, retention policy and access controls. No consent system or encryption/key management is implemented; local demo reviewer authorization exists but is not production identity.
 
 Human corrections preserve original records, candidates and lineage. Reviewer aliases are synthetic/demo-safe labels, not authentication. Ordinary logging accepts only a fixed operation vocabulary, UUID record ID and schema version. Never print raw inputs, private identifiers, environment secrets or database connection strings. Custom private-data/cache directories must remain outside source control (use ignored defaults or paths outside the repository).
 
 Future evaluation must use consented annotated data, temporal splits and point-in-time evidence. Fairness analysis must examine subgroup coverage, calibration and errors with sufficient sample sizes; do not infer fairness from excluding protected attributes. Provide explanations and review/appeal paths before operational use. No real applicant outcome, model performance or fairness evidence exists here.
+
+Second-pass governance: model artifacts declare experiment scope and original target. Public benchmarks cannot score Agrogami borrower assessments; synthetic results remain ILLUSTRATIVE. Incomplete/review evidence withholds probabilities/display scores. READY is a complete research computation, not a VALIDATED lending state. The project score is not FICO or bureau-equivalent and must not be presented as approval, creditworthiness or calibrated evidence by itself.
+
+TreeSHAP associations are not causal explanations. Controlled reasons cannot infer lateness from missing receipts. Protected group membership is never inferred and is supplied only to offline auditing; restricted fairness endpoints keep group labels out of viewer evaluation responses. Wilson intervals and small-group flags do not establish parity. ThresholdOptimizer changes research classification thresholds only, not production lending policy.
+
+Demo viewer/reviewer/admin tokens provide a local workflow boundary. They are not production identity, applicant isolation, secure consent or review authority verification. Never commit tokens. Run locally with access logging disabled; request validation and storage errors return sanitized messages, not raw inputs/paths. Real deployment needs production authorization, security review, retention/deletion/consent operations and independent model validation.
+
+## Local UI and Prism safeguards
+
+Research-prototype warnings, artifact scope, review/insufficient status, null scores and project-score limitations remain visible. Only actual stored explanation/evaluation reports are displayed. Original candidate displays are intentional reviewer/admin evidence review; they must not become routine logs. Prism returns minimized accepted ledger/stored assessment data and restricted aggregate fairness, not raw source bytes or row-level protected attributes.
+
+External CloudCamp guidance must never receive product data. Internal official SDK verification does not prove external client reuse. No UI interaction is an approval, automated disbursement or validated creditworthiness decision. Local demo roles remain dataset-wide rather than production applicant authorization.

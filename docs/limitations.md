@@ -1,6 +1,6 @@
 # Current limitations
 
-Only the deterministic foundation exists. Included messages and events are invented synthetic fixtures. Provider names are illustrative; production SMS templates, authenticity, OCR accuracy, transaction ownership and complete statements are not verified.
+The deterministic foundation and second-pass backend/research interfaces exist. Included messages and events are invented synthetic fixtures. Provider names are illustrative; production SMS templates, authenticity, OCR accuracy, transaction ownership and complete statements are not verified.
 
 Coverage is explicit caller attestation, not inferred truth. Numeric cash totals under partial evidence are observed totals with reasons; unobserved cash flow remains unknown. Balance ratios use a conservative single-account daily-closing contract. Multi-account aggregation, partial reversals, cross-currency conversion, separate fee refund conventions and provider-specific parsers are outside v1. Review rules use exact scoped references; reference-less proximity causes review, not fuzzy auto-acceptance.
 
@@ -8,4 +8,18 @@ Persistence uses relational identity/lineage plus JSON text payloads. Applicatio
 
 Python 3.14.8 was used for this test run. Python 3.11+ is declared; a multi-version CI matrix remains future work. Dependency ranges are declared rather than a hash-locked production environment. No external credentials, real datasets, annotations or model checkpoints were provided or requested for this scope.
 
-Not implemented: TrOCR, LayoutLMv3, DeBERTa, LightGBM, XGBoost, calibration, SHAP, Fairlearn, Streamlit, Agrogami Prism MCP, deployment or video proof. Empty downstream package directories preserve the supplied structure and do not indicate implementation.
+Implemented interfaces/utilities include local TrOCR/LayoutLMv3/DeBERTa loading, numerical risk/calibration, TreeSHAP and offline Fairlearn support. Their trained financial checkpoints and real-data validation remain absent. Streamlit, authorized read-only Prism, project /docs and Docker artifacts are implemented. Docker build/runtime is unverified; public deployment/video proof are absent.
+
+SMS regex templates accept only synthetic provider-like English forms; they are not production integrations. Raster preprocessing supports explicit orientation and small-angle projection deskew; it does not prove legibility. Nontrivial EXIF requires normalized export; PDF/multipage rasterization and accurate word segmentation remain outside current adapters. TrOCR/LayoutLMv3 retain uncertain candidates and line-level regions; recognition confidence is deliberately uncalibrated. No Bangla handwriting accuracy claim exists.
+
+The API is synchronous and uses local demo token roles, tokenless viewer access and no applicant-level authorization or rate limiting. Unknown evidence/calibration yields null scores, not substitutes. Source objects are private files plus transactional database metadata; crash recovery, retention and production encryption are not implemented. Assessment metadata and evidence are immutable through repository methods, not cryptographically authenticated or protected from database administrators.
+
+Automatic post-correction review assessment append follows the atomic core ledger correction in a separate transaction. A crash/storage outage between these commits requires explicit snapshot recovery; a durable cross-store recovery worker is not implemented. Fresh coverage is unknown and scores are withheld. Direct Store.correct is ledger-only; use the application review service for complete research workflow behavior.
+
+Model/calibration split checks use caller-supplied stable sample IDs and temporal metadata; they do not independently verify authenticity or applicant-level separation. Artifact scope labels do not certify research validity. Generic public CSV adapters require caller-specified numeric encoding/target mapping; no Berka joins or financial-target reconstruction are fabricated. Offline fairness uses explicit group membership and conditional decided/labeled class rates; no future parity or production guarantees. Numerical package verification and optional transformer wheel-resolution evidence are recorded separately; checkpoint execution/training is externally blocked.
+
+## Local completion boundaries
+
+All ten Streamlit pages, authorized candidate review, project docs and read-only Prism protocol are implemented and locally tested. API/UI/Prism processes were actually launched and checked with temporary synthetic storage; no external client or public endpoint was connected. UI uses explicit reviewer JSON changes/corroborated full candidate contracts rather than an automatic evidence-certification system. Scenario templates are synthetic; unsupported real formats remain review.
+
+Dockerfile/compose/ignore/healthchecks are prepared but Docker is not installed here, so config/build/run verification remains a human action. Containers are not production-ready financial infrastructure. No representative risk/fairness/calibration/latency evidence, model checkpoint, consented annotation dataset or live provider integration exists.
