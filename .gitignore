@@ -13,3 +13,8 @@ model_cache/
 .coverage
 dist/
 build/
+
+.pytest_temp/
+.pytest_cache/
+test_*.db*
+
