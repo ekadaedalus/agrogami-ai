@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agrogami"
+version = "0.1.0"
+description = "Deterministic financial evidence foundation"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2.10,<3", "pydantic-settings>=2.7,<3", "SQLAlchemy>=2.0.36,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+postgres = ["psycopg[binary]>=3.2,<4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

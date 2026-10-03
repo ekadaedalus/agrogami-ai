@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "warning": "Invented provider-like examples; not verified production templates or extraction results.",
+  "messages": [
+    {"provider": "SYNTHETIC-bKash-like", "template": "synthetic-payment-v1", "body": "SYNTHETIC: Payment Tk 100.00. Fee Tk 2.00. TrxID SYNTHETIC-PAY-001. Balance Tk 398.00."},
+    {"provider": "SYNTHETIC-Nagad-like", "template": "synthetic-transfer-v1", "body": "SYNTHETIC: Send Money Tk 100.00. Fee Tk 0.00. TrxID SYNTHETIC-SEND-001."},
+    {"provider": "SYNTHETIC-unknown", "template": "unsupported", "body": "SYNTHETIC: credit-ish maybe Tk 100 or 1000; no verified transaction semantics."}
+  ]
+}
