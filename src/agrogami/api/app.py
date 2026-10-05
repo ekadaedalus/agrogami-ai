@@ -17,6 +17,7 @@ from agrogami.storage import Store
 from agrogami.application import ApplicationService, Job, EvaluationRun
 from agrogami.assessment import AssessmentSnapshot
 from agrogami.explainability.core import EvidenceReason, TreeExplanation
+from agrogami import __version__
 from agrogami.fairness.metrics import FairnessReport
 
 Record = TypeVar("Record")
@@ -25,7 +26,7 @@ Record = TypeVar("Record")
 class HealthResponse(Contract):
     status: Literal["ok"] = "ok"
     mode: Literal["research"] = "research"
-    version: str = "0.2.0"
+    version: str = __version__
 
 
 class ExplanationResponse(Contract):
@@ -102,7 +103,7 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
         yield
         if owned:
             app.state.service.store.engine.dispose()
-    app = FastAPI(title="Agrogami AI", version="0.2.0", docs_url="/api/docs",
+    app = FastAPI(title="Agrogami AI", version=__version__, docs_url="/api/docs",
                   summary="Traceable underwriting from financial records traditional credit systems ignore",
                   description=("An explainable underwriting evidence and risk-audit workbench for thin-file credit. "
                                "Assessment outputs are illustrative and are not lending decisions or validated "

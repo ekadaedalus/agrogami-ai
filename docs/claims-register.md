@@ -65,8 +65,32 @@ Historical second-pass default suite: **223 passed, 3 heavy checkpoint tests des
 | Updated presentation with local API/UI/Prism smoke | DEMONSTRATED_WITH_SYNTHETIC_DATA | 2026-10-04 existing verifier exercised via in-memory harness on OS-assigned unused loopback ports after default ports were occupied; official SDK reads and owned-process/storage cleanup passed; no public deployment |
 | Synthetic correction/recomputed features/immutable snapshots | DEMONSTRATED_WITH_SYNTHETIC_DATA | live smoke plus HTTP client/UI tests preserve old records and reference new event versions |
 | Docker artifacts and local run helpers | IMPLEMENTED | Dockerfile/compose/ignore/healthchecks and relative PowerShell helpers; Docker unavailable, no build/runtime proof |
-| External Codex/Claude/Antigravity MCP client reuse | PLANNED | No manually connected external client invocation; internal official SDK tests are separate evidence |
+| External Codex/Claude/Antigravity MCP client reuse | PLANNED | No external client invocation is recorded in this repository; internal official SDK tests are separate evidence |
 | Public deployment/video/proof links | PLANNED | No public target/credentials/URL or video provided/performed |
 | Representative borrower risk/calibration/fairness/latency validation | BLOCKED_EXTERNAL_DEPENDENCY | No real financial checkpoints, representative linked mature outcomes or annotations |
 
-Historical local-completion suite: **251 passed, 3 heavy tests deselected**, Python 3.14.8. Current verified full default suite, 2026-10-05: **253 passed, 3 heavy tests deselected in 46.67s** on Python 3.14.8, including **30 local-product cases**. All original foundation and second-pass cases remain green. The command used `-p no:cacheprovider --basetemp <fresh system temporary directory>` to bypass workspace temporary/cache ACL failures; only configured optional heavy tests were deselected. Tests are software evidence, not real-world underwriting/accuracy/fairness proof.
+Historical local-completion suite: **251 passed, 3 heavy tests deselected**, Python 3.14.8. Historical (pre-remediation) full default suite, 2026-10-05: **253 passed, 3 heavy tests deselected in 46.67s** on Python 3.14.8, including **30 local-product cases**. All original foundation and second-pass cases remain green. The command used `-p no:cacheprovider --basetemp <fresh system temporary directory>` to bypass workspace temporary/cache ACL failures; only configured optional heavy tests were deselected. Tests are software evidence, not real-world underwriting/accuracy/fairness proof.
+
+## Final freeze pass — 2026-10-05 (current)
+
+| Claim | Status | Evidence / boundary |
+|---|---|---|
+| Deterministic financial core (original 107 foundation cases) | TESTED | Green within the 460-case default suite |
+| Financial adversarial remediation (duplicate SMS, stable synthetic accounts, supersession, reversals, obligation denominators) | TESTED | tests/test_financial_adversarial.py (56 cases) |
+| Deployment-mode authentication, applicant/resource grants, reviewer/admin write restrictions, Prism applicant access | TESTED | tests/test_authorization_adversarial.py (33); test_backend_api.py; test_local_product.py. Static local grants, not production IAM |
+| Evaluation identity/lineage validation, private lineage retention, public-response minimization | TESTED | tests/test_adversarial_governance.py; tests/test_public_lineage.py |
+| Temporal leakage safeguards (shared temporal validation, mature outcomes, chronological splits, incompatible calibrators) | TESTED | tests/test_adversarial_governance.py; synthetic contracts only |
+| Finite TreeSHAP values (target, base, contributions, additivity error, persisted payload) | TESTED | Nonfinite NaN/±Infinity cases in tests/test_adversarial_governance.py; native LightGBM/XGBoost explanation tests unchanged |
+| Release version 0.2.0 consistency | TESTED | tests/test_version_consistency.py |
+| Credential-free HTTP MCP configuration example (`type: http`, `/mcp`, password input) | TESTED | tests/test_config_security.py |
+| scripts/prepare_demo.py fresh SYNTHETIC scenario; earlier scenarios unchanged | TESTED | tests/test_demo_tooling.py; executed 2026-10-05 with SHA-256 before/after comparison |
+| Local FastAPI, Streamlit and authenticated Streamable HTTP Prism runtime | DEMONSTRATED_WITH_SYNTHETIC_DATA | scripts.verify_local_runtime on OS-assigned ports, 2026-10-05; official SDK reads; owned-process/storage cleanup |
+| Tested dependency snapshot | IMPLEMENTED | constraints-tested.txt: pip freeze of the tested Python 3.14.8 / Windows environment; optional constraints, not a lock |
+| Docker configuration | IMPLEMENTED | Docker not installed on the tested host; no config/build/run evidence |
+| External Codex/Claude/Antigravity MCP invocation | PLANNED | No external-client invocation evidence is recorded in this repository |
+| Public deployment | PLANNED | No target, URL or deployment performed |
+| Trained Agrogami extraction checkpoints | BLOCKED_EXTERNAL_DEPENDENCY | No annotations or checkpoints |
+| Representative linked-borrower predictive validation; real-world fairness validation | BLOCKED_EXTERNAL_DEPENDENCY | No representative mature linked outcomes |
+| Production-grade IAM / tenant isolation | PLANNED | Static token/grant mapping only |
+
+Current verified default suite: **460 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`); `pip check` clean. Counts in earlier sections are historical.

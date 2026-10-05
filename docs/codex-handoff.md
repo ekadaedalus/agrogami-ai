@@ -251,7 +251,7 @@ Actual four-tool HTTP protocol, registration/authentication/restrictions/unknown
 
 ## Integration
 
-Marked synthetic SMS ? hash/source intake ? candidate spans ? pending canonical event ? authorized corroborated correction ? accepted ledger ? core reconciliation/features ? null/insufficient assessment with real reasons ? immutable journal. Further correction preserves originals, references new versions in recomputed features and appends a fresh unscored review assessment. Original assessment retrieval remains identical. UI and smoke tests expose the same service path. Missing checkpoints/coverage remain honest blockers, not fake low scores.
+Marked synthetic SMS → hash/source intake → candidate spans → pending canonical event → authorized corroborated correction ? accepted ledger ? core reconciliation/features ? null/insufficient assessment with real reasons ? immutable journal. Further correction preserves originals, references new versions in recomputed features and appends a fresh unscored review assessment. Original assessment retrieval remains identical. UI and smoke tests expose the same service path. Missing checkpoints/coverage remain honest blockers, not fake low scores.
 
 ## Docker
 
@@ -329,3 +329,22 @@ The Streamlit hero is Overview-only; other pages use a title and helper line. Th
 This pass changed UI presentation, existing UI assertions and synchronized docs only. Financial calculations, immutable ledger/snapshots, API/MCP contracts and role restrictions remain unchanged. Full default suite: **253 passed, 3 optional heavy tests deselected in 46.67s**, Python 3.14.8. An initial workspace temporary-directory access failure was bypassed with a fresh system temporary directory and disabled pytest cache. A separate ephemeral AppTest check passed for ten page headers, empty states, collapsed lookups and readable labels.
 
 The existing live runtime verifier passed through an in-memory harness using unused loopback ports and isolated system temporary storage, including synthetic workflow, official SDK reads and owned-process/storage cleanup. Existing services were not stopped. Installed Streamlit selector names were checked, and the declared banner colors have 8.70:1 contrast; this is not browser visual inspection. Video recording, public deployment and real-data/model validation remain unperformed. Exact test commands and evidence are in build-status.md; external blockers remain unchanged.
+
+# Final Remediation, Verification and Freeze — 2026-10-05
+
+Starting state: remediation committed as `fix: audit auth`. With a repository-local basetemp the suite had 432 passed and 28 failed (pre-written nonfinite-SHAP and version-consistency regressions); the plain `pytest -q` command additionally errored on the ACL-locked system Temp `pytest-of-HP` directory.
+
+Changes: src/agrogami/explainability/core.py (finite target/base/contribution/additivity validation in `explain_tree`; `FiniteFloat` fields and a nonnegative additivity error on `TreeExplanation`, covering creation, persisted reload and API/MCP response models); release version 0.2.0 in pyproject.toml, `agrogami.__version__` and API/OpenAPI metadata (the API reads the package value); pytest addopts use `.pytest_temp/default` and disable the cache plugin; constraints-tested.txt; README, build-status, claims-register, mcp and this record. No financial logic, feature definition, authorization boundary, MCP tool or UI design changed.
+
+Verification: default suite **460 passed, 3 deselected**; `pip check` clean; live API/Streamlit/Prism verifier passed on OS-assigned ports with cleanup; prepare_demo created a fresh SYNTHETIC scenario without changing earlier ones; secret/privacy scan clean. Docker remains unexecuted (not installed). No external MCP client invocation is recorded here.
+
+The historical Temp audit directory could not be removed because of Windows ACL restrictions. All permanent regression assets have been internalized into the repository and no source/test/runtime dependency remains on that Temp location.
+
+Freeze commands:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m scripts.verify_local_runtime --api-port 0 --ui-port 0 --mcp-port 0
+.\.venv\Scripts\python.exe -m scripts.prepare_demo
+```

@@ -3,7 +3,7 @@ from typing import Any, Callable
 from uuid import UUID
 from decimal import Decimal
 import numpy as np
-from pydantic import Field, TypeAdapter, field_validator
+from pydantic import Field, FiniteFloat, TypeAdapter, field_validator
 from agrogami.schemas import Contract, FeatureSnapshot, CanonicalEvent, Source
 from agrogami.risk.models import TreeRiskModel, vector
 
@@ -14,10 +14,10 @@ class TreeExplanation(Contract):
     target: str = "raw_margin_log_odds"
     background_identity: str = Field(min_length=1)
     feature_definitions: dict[str, str]
-    base_value: float
-    contributions: dict[str, float]
-    target_value: float
-    additivity_error: float
+    base_value: FiniteFloat
+    contributions: dict[str, FiniteFloat]
+    target_value: FiniteFloat
+    additivity_error: FiniteFloat = Field(ge=0)
     limitation: str = "Associational model attribution, not causality; not calibrated-probability or score contributions"
 
 
@@ -42,9 +42,12 @@ def explain_tree(model: TreeRiskModel, features: dict[str, float], *, background
     if contributions.shape != (1, len(features)):
         raise ValueError("only binary single-margin explanations supported")
     base = float(np.asarray(result.base_values).reshape(-1)[0])
-    target = model.raw_margin(features)
+    target = float(model.raw_margin(features))
+    # Reject NaN/inf explicitly: NaN comparisons are False and would otherwise pass the additivity bound.
+    if not np.isfinite(contributions).all() or not np.isfinite(base) or not np.isfinite(target):
+        raise ValueError("TreeSHAP produced nonfinite values")
     error = abs(base + float(contributions.sum()) - target)
-    if not np.isfinite(contributions).all() or not np.isfinite(base) or error > 1e-5 * max(1, abs(target)):
+    if not np.isfinite(error) or error > 1e-5 * max(1, abs(target)):
         raise ValueError("TreeSHAP additivity failed")
     return TreeExplanation(model_version=model.artifact.version, model_artifact_id=model.artifact.artifact_id,
         background_identity=background_identity, feature_definitions=feature_definitions, base_value=base,
