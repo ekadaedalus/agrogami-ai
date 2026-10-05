@@ -7,7 +7,8 @@ from uuid import UUID, uuid4
 import numpy as np
 from pydantic import Field, model_validator
 from agrogami.schemas import Contract
-from agrogami.datasets import RiskDataset, RESEARCH_TARGET
+from agrogami.datasets import (RiskDataset, DatasetSplitLineage, dataset_lineage,
+                              validate_dataset_scope, validate_temporal_scope)
 
 
 class ValidationScope(StrEnum):
@@ -28,6 +29,7 @@ class ModelArtifact(Contract):
     feature_schema_version: str = "1.0"
     window_days: int = Field(default=30, ge=1)
     training_sample_ids: tuple[str, ...] = ()
+    training_lineage: DatasetSplitLineage | None = None
     protected_columns: tuple[str, ...] = ()
     limitations: tuple[str, ...] = ()
 
@@ -37,6 +39,13 @@ class ModelArtifact(Contract):
             raise ValueError("unique feature definitions required")
         if set(self.feature_names) & set(self.protected_columns):
             raise ValueError("protected feature leakage")
+        if self.training_lineage is not None:
+            lineage = self.training_lineage
+            validate_dataset_scope(lineage.identity, self.scope)
+            if (lineage.identity.dataset_id != self.dataset_id or lineage.identity.target_definition != self.target_definition
+                    or lineage.feature_names != self.feature_names or lineage.feature_schema_version != self.feature_schema_version
+                    or lineage.observed_sample_ids != self.training_sample_ids):
+                raise ValueError("model training lineage mismatch")
         return self
 
 
@@ -54,18 +63,7 @@ def vector(features: dict[str, float], artifact: ModelArtifact) -> np.ndarray:
 
 
 def training_rows(data: RiskDataset, scope: ValidationScope) -> tuple[np.ndarray, np.ndarray]:
-    if scope == ValidationScope.UNTRAINED:
-        raise ValueError("training must declare actual experiment scope")
-    public = data.identity.scope in {"public credit benchmark", "relational financial benchmark"}
-    if public and scope != ValidationScope.PUBLIC_DATASET_BENCHMARK:
-        raise ValueError("public benchmark cannot become a linked-outcome experiment")
-    if scope == ValidationScope.PUBLIC_DATASET_BENCHMARK and not public:
-        raise ValueError("public benchmark scope requires a public risk dataset identity")
-    if scope == ValidationScope.SYNTHETIC_DEMO and data.identity.scope != "synthetic":
-        raise ValueError("synthetic scope requires explicitly synthetic dataset identity")
-    if scope == ValidationScope.REAL_LINKED_OUTCOME_EXPERIMENT:
-        if data.identity.scope != "real linked outcomes" or data.identity.target_definition != RESEARCH_TARGET or not data.decision_times:
-            raise ValueError("linked outcome requires research target and point-in-time availability")
+    validate_temporal_scope(data, scope)
     selected = [i for i, y in enumerate(data.labels) if y is not None]
     y = np.asarray([data.labels[i] for i in selected], dtype=int)
     if len(set(y)) != 2:
@@ -76,6 +74,7 @@ def training_rows(data: RiskDataset, scope: ValidationScope) -> tuple[np.ndarray
 def artifact_for(data: RiskDataset, algorithm: str, scope: ValidationScope, version: str) -> ModelArtifact:
     return ModelArtifact(version=version, algorithm=algorithm, scope=scope, dataset_id=data.identity.dataset_id,
         target_definition=data.identity.target_definition, feature_names=data.feature_names,
+        feature_schema_version=data.feature_schema_version, training_lineage=dataset_lineage(data),
         training_sample_ids=tuple(sid for sid, y in zip(data.sample_ids, data.labels) if y is not None),
         protected_columns=data.protected_columns, limitations=data.identity.limitations)
 

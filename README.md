@@ -1,8 +1,14 @@
-# Agrogami AI ? Research Prototype
+# Agrogami AI
 
-A Multimodal Framework for Fair and Explainable Alternative Credit Scoring from Unstructured Mobile and Paper Records.
+Traceable underwriting from financial records traditional credit systems ignore
 
-This demonstration uses sample, synthetic, or de-identified records. Illustrative outputs are not lending decisions or validated individual creditworthiness. No real financial extraction checkpoint or linked-outcome borrower model is supplied.
+Turn mobile-money messages, informal ledger records, receipts, and bills into traceable financial evidence for thin-file credit assessment.
+
+An explainable underwriting evidence and risk-audit workbench for thin-file credit.
+
+**Demo environment**
+
+This demonstration uses synthetic, sample, or de-identified financial records. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness. No real financial extraction checkpoint or linked-outcome borrower model is supplied.
 
 ## Local architecture and status
 
@@ -24,7 +30,7 @@ Copy-Item .env.example .env
 
 Copy the example only when creating a new local environment file; preserve existing overrides. `requirements.txt` delegates to pyproject.toml. Extras: ui, mcp, local, trees, fairness, models and postgres. Models dependencies never fetch checkpoints. Python 3.14 wheels installed successfully for Streamlit 1.65.0, MCP 1.30.0 and Markdown 3.11; see dependency-compatibility.json.
 
-In ignored `.env`, configure `AGROGAMI_DEMO_TOKENS` as JSON mapping locally generated secret tokens to viewer/reviewer/admin. Do not commit tokens. UI uses the entered credential; API uses X-Agrogami-Token. No credential permits API viewer reads; invalid credentials fail. Candidate review, corrections, assessment creation and fairness retrieval require reviewer/admin. This is dataset-wide local research authorization, not production identity or applicant isolation.
+In ignored `.env`, configure `AGROGAMI_DEMO_TOKENS` as JSON mapping locally generated secret tokens to viewer/reviewer/admin. Do not commit tokens. UI uses the credential entered in the collapsed **Developer settings** section; API uses X-Agrogami-Token. No credential permits API viewer reads; invalid credentials fail. Candidate review, corrections, assessment creation and fairness retrieval require reviewer/admin. This is dataset-wide local demo authorization, not production identity or applicant isolation.
 
 ## Run API, UI and Prism
 
@@ -44,9 +50,11 @@ Windows helpers: scripts/run_api.ps1, run_ui.ps1, run_mcp.ps1, run_tests.ps1. Th
 
 ## Demonstration
 
-Enter a reviewer credential in the UI, keep the generated applicant UUID, select Intake / Samples ? SYNTHETIC ? External inflow and submit. Evidence Review displays original/normalized candidates, confidence, parser versions and spans. Explicitly corroborate synthetic ownership and append a reviewed version. Ledger/Features show actual accepted evidence and three windows; unknown coverage-dependent fields remain unavailable.
+Open **Developer settings** in the sidebar to enter a reviewer credential; the API URL and generated applicant UUID are there too. Select **Applicant Evidence**, SYNTHETIC, External inflow and submit. **Evidence Review** leads with a readable status, amount, source and review reason. Expand **Technical evidence** to inspect UUIDs, original/normalized JSON, confidence, parser/template versions, SHA-256 hashes and source spans. Explicitly corroborate synthetic ownership and append a reviewed version. **Event Ledger** preserves the evidence versions. **Financial Profile** summarizes verified inflow, evidence coverage, payment history and balance history from existing backend values, then retains the full 30/60/90-day tables under **Detailed underwriting evidence**. Unknown coverage-dependent fields remain unavailable.
 
-Create an assessment with unknown coverage: null score and insufficient/review status are expected, not a low score. Inspect real reasons, then correct the accepted amount with a Decimal string and reason. Audit / Versions shows old event/snapshot and newly appended unscored review snapshot. Candidate-only documents require complete manually corroborated canonical JSON; missing extraction checkpoints are visibly blocked. Evaluation/Fairness requires an actual stored run UUID; no fabricated charts are supplied.
+Create an assessment with unknown coverage: **Assessment withheld** explains insufficient evidence while preserving the null score and underlying system state. Reasons reflect the stored evidence and artifact scope; complete balance/obligation histories and representative linked borrower outcomes are not implied by a sample transaction. Inspect the reasons, then correct the accepted amount with a Decimal string and reason. **Audit Trail** retains old events/snapshots and the newly appended unscored review snapshot in technical drill-down. Candidate-only documents require complete manually corroborated canonical JSON; missing extraction checkpoints are visibly blocked. **Fairness & Evaluation** requires an actual stored run UUID; no fabricated charts are supplied.
+
+Navigation: Overview, Applicant Evidence, Evidence Review, Event Ledger, Financial Profile, Assessment, Explanation, Fairness & Evaluation, Audit Trail, Documentation.
 
 See [demo walkthrough](docs/local-demo.md), [API](docs/backend-api.md), [Prism](docs/mcp.md), [datasets](docs/datasets.md), [evaluation protocol](docs/evaluation-protocol.md) and [limitations](docs/limitations.md).
 
@@ -60,7 +68,7 @@ See [demo walkthrough](docs/local-demo.md), [API](docs/backend-api.md), [Prism](
 
 Default tests run offline without model downloads, external MCP, PostgreSQL or CloudCamp. Three supplied-local-checkpoint tests are optional/heavy. Live verification requires free ports 8000/8501/8001; it starts isolated temporary API/UI/Prism processes, verifies the synthetic correction/snapshot flow and official SDK reads, then stops only its own processes.
 
-Verified default suite: **251 passed, 3 deselected** on Python 3.14.8. All original 223 cases remain green, including the 107 deterministic foundation cases.
+Verified default suite, 2026-10-04: **253 passed, 3 deselected** on Python 3.14.8, including 30 local-product cases. All original 223 cases remain green, including the 107 deterministic foundation cases. The previous local-completion run had 251 passing cases. The latest run used `-p no:cacheprovider --basetemp <fresh .pytest_temp directory>` to bypass existing temporary/cache ACL failures; this did not exclude additional tests.
 
 For an already running API, set AGROGAMI_SMOKE_TOKEN to a configured reviewer/admin credential and run:
 
@@ -84,6 +92,8 @@ docker compose down
 Configure ignored local tokens before enabling MCP. Default SQLite uses a named private volume shared by API/Prism. Ports publish only on localhost. Image uses Python 3.14, a nonroot user, no embedded secrets or model downloads; API/UI healthchecks are included. Docker config/build/runtime validation remains a human action on a Docker-capable machine. No public deployment occurred.
 
 ## Responsible use and remaining work
+
+Agrogami does not represent sample outputs as validated lending decisions. Real underwriting-performance and fairness claims require representative pre-application records linked to mature repayment outcomes.
 
 Project-specific 300?850 mapping is not FICO, bureau-equivalent or approval; scaling does not create calibration. TreeSHAP is association, not causality or legal adverse-action compliance. Protected attributes are separate offline inputs; Fairlearn optimization gives no future parity guarantee. Missing receipts are not nonpayment, unobserved days are not zero income, and public datasets retain their original target/scope.
 

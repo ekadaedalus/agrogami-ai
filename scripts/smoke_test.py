@@ -49,7 +49,10 @@ def main() -> int:
     client = APIClient(args.api_url, os.environ.get("AGROGAMI_SMOKE_TOKEN", ""))
     try:
         with urlopen(args.api_url.rstrip("/") + "/docs", timeout=10) as response:
-            assert b"Research Prototype" in response.read()
+            documentation = response.read()
+            assert b"<h1>Agrogami AI</h1>" in documentation
+            assert b"Traceable underwriting from financial records traditional credit systems ignore" in documentation
+            assert b"Demo environment" in documentation
         result = run(client)
         print("PASS: API, docs, synthetic intake, candidate review, correction, snapshots and explanation")
         return 0

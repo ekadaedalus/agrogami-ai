@@ -12,7 +12,7 @@ All metrics must identify target, scope, dataset, sample membership, versions, u
 
 TreeSHAP uses raw binary model margin, declared reference/background and feature definitions. Require base+contributions to equal native target within documented numerical tolerance. Do not label those contributions as calibrated probability, project score or causality. Controlled explanation reasons separately verify evidence/coverage and retain event/source lineage.
 
-## Local prototype software verification
+## Local workbench software verification
 
 Default tests include Streamlit AppTest for all ten pages and the intake/review/feature/assessment/audit workflow, typed HTTP client/service integration, immutable correction history, candidate authorization, source scope, docs escaping and four-tool Streamable HTTP protocol with fairness restrictions. These are synthetic software tests, not representative extraction or underwriting validation.
 

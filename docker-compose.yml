@@ -6,6 +6,8 @@ services:
       AGROGAMI_DATABASE_URL: sqlite:////app/private_data/agrogami.db
       AGROGAMI_PRIVATE_DATA_DIR: /app/private_data
       AGROGAMI_DEMO_TOKENS: ${AGROGAMI_DEMO_TOKENS:-{}}
+      AGROGAMI_LOCAL_DEMO_MODE: "false"
+      AGROGAMI_APPLICANT_GRANTS: ${AGROGAMI_APPLICANT_GRANTS:-{}}
     volumes: ["private_data:/app/private_data"]
   ui:
     build: .
@@ -14,6 +16,7 @@ services:
     environment:
       AGROGAMI_API_URL: http://api:8000
       AGROGAMI_PUBLIC_API_URL: http://127.0.0.1:8000
+      AGROGAMI_LOCAL_DEMO_MODE: "false"
     depends_on:
       api:
         condition: service_healthy
@@ -31,6 +34,8 @@ services:
       AGROGAMI_MCP_HOST: 0.0.0.0
       AGROGAMI_MCP_AUTH_TOKEN: ${AGROGAMI_MCP_AUTH_TOKEN:-}
       AGROGAMI_DEMO_TOKENS: ${AGROGAMI_DEMO_TOKENS:-{}}
+      AGROGAMI_LOCAL_DEMO_MODE: "false"
+      AGROGAMI_APPLICANT_GRANTS: ${AGROGAMI_APPLICANT_GRANTS:-{}}
     volumes: ["private_data:/app/private_data"]
     healthcheck:
       disable: true

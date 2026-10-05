@@ -22,7 +22,7 @@ from agrogami.validation.rules import validate_event
 from agrogami.features import build_all_windows
 from agrogami.assessment import assess, AssessmentSnapshot, SnapshotStatus
 from agrogami.risk.models import RiskModel, ValidationScope
-from agrogami.calibration.core import Calibrator
+from agrogami.calibration.core import Calibrator, EvaluationLineage
 from agrogami.fairness.metrics import FairnessReport
 from agrogami.explainability.core import TreeExplanation
 
@@ -56,6 +56,7 @@ class EvaluationRun(Contract):
     metrics: dict[str, float | None]
     fairness: FairnessReport | None = None
     limitations: tuple[str, ...]
+    private_lineage: EvaluationLineage | None = None
     created_at: AwareDatetime = Field(default_factory=utcnow)
 
 

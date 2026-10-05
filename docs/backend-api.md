@@ -1,4 +1,8 @@
-# Research API
+# Agrogami AI API
+
+Traceable underwriting from financial records traditional credit systems ignore
+
+An explainable underwriting evidence and risk-audit workbench for thin-file credit.
 
 Run from repository root on Python 3.14.8:
 
@@ -6,7 +10,7 @@ Run from repository root on Python 3.14.8:
 .\.venv\Scripts\python.exe -m uvicorn agrogami.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
-The server is local research software. Swagger: `/api/docs`; OpenAPI: `/api/openapi.json`; `/docs` renders allowlisted synchronized repository documentation. Streamlit and read-only Prism are implemented; container artifacts exist but Docker execution is unverified. No public deployment exists.
+The server provides the local evidence and risk-audit workflow. Assessment outputs are illustrative and are not lending decisions or validated individual creditworthiness. Swagger: `/api/docs`; OpenAPI: `/api/openapi.json`; `/docs` renders allowlisted synchronized repository documentation. Streamlit and read-only Prism are implemented; container artifacts exist but Docker execution is unverified. No public deployment exists. Product branding changes do not change route contracts, authorization headers or the existing health-mode value.
 
 | Route | Contract / authorization |
 |---|---|

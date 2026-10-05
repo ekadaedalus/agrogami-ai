@@ -82,13 +82,46 @@ def validate_event(event: CanonicalEvent, currency: str = "BDT",
                    review_reason=tuple(dict.fromkeys(reasons)))
 
 
-def same_economic_fields(a: CanonicalEvent, b: CanonicalEvent) -> bool:
+def same_match_fields(a: CanonicalEvent, b: CanonicalEvent) -> bool:
     return (a.applicant_id, a.account_id, a.currency, a.amount, a.fee, a.direction,
             a.ownership) == (b.applicant_id, b.account_id, b.currency, b.amount, b.fee,
                              b.direction, b.ownership)
 
 
-def reconcile(events: list[CanonicalEvent]) -> list[CanonicalEvent]:
+def same_economic_fields(a: CanonicalEvent, b: CanonicalEvent) -> bool:
+    def meaning(event: CanonicalEvent) -> tuple[object, ...]:
+        # Receipt is a presentation of a payment; medium changes and credit
+        # settlements carry distinct economic meaning even at the same amount.
+        kind = ("movement" if event.transaction_type in {T.RECEIPT, T.PAYMENT, T.SEND_MONEY, T.TRANSFER}
+                else event.transaction_type)
+        return kind, event.external_medium_evidence, event.settlement_of_event_id
+    return same_match_fields(a, b) and meaning(a) == meaning(b)
+
+
+def lineage_current_ids(events: list[CanonicalEvent]) -> dict[UUID, UUID]:
+    """Resolve relationship targets without rewriting immutable UUID pointers."""
+    successors = {e.supersedes_event_id: e.event_id for e in events if e.supersedes_event_id}
+    resolved = {}
+    for event in events:
+        current, seen = event.event_id, set()
+        while current in successors:
+            if current in seen:
+                raise ValueError("cyclic event lineage")
+            seen.add(current)
+            current = successors[current]
+        resolved[event.event_id] = current
+    return resolved
+
+
+def reversal_economic_identity(event: CanonicalEvent) -> tuple[object, ...]:
+    return (event.applicant_id, event.account_id, event.currency, event.amount, event.fee,
+            event.direction, event.transaction_type, event.ownership, event.external_medium_evidence,
+            event.event_timestamp, event.transaction_reference, event.provider,
+            event.reversal_of_event_id, event.settlement_of_event_id)
+
+
+def reconcile(events: list[CanonicalEvent], *, lineage: list[CanonicalEvent] | None = None,
+              as_of: datetime | None = None) -> list[CanonicalEvent]:
     """Reference matches are scoped by applicant/account/provider; proximity alone is review."""
     if len({e.event_id for e in events}) != len(events):
         raise ValueError("event IDs must be unique")
@@ -104,6 +137,21 @@ def reconcile(events: list[CanonicalEvent]) -> list[CanonicalEvent]:
             for j in indices:
                 if result[j].validation_status != V.REJECTED:
                     result[j] = review(result[j], R.AMBIGUOUS_MATCH)
+    # Compute the entire proximity group before changing any member's status.
+    # Prior unresolved members remain evidence of ambiguity for later arrivals.
+    ambiguous: set[int] = set()
+    excluded_types = {T.REVERSAL, T.CREDIT_SALE, T.RECEIVABLE, T.PAYABLE, T.BALANCE_SNAPSHOT}
+    for i, event in enumerate(result):
+        if event.validation_status == V.REJECTED or event.transaction_type in excluded_types:
+            continue
+        for j, prior in enumerate(result[:i]):
+            if (prior.validation_status != V.REJECTED and prior.transaction_type not in excluded_types
+                    and prior.provider == event.provider and same_match_fields(event, prior)
+                    and abs((event.event_timestamp - prior.event_timestamp).total_seconds()) <= 300
+                    and (not event.transaction_reference or not prior.transaction_reference)):
+                ambiguous.update((i, j))
+    for i in ambiguous:
+        result[i] = review(result[i], R.AMBIGUOUS_MATCH)
     for i, event in enumerate(result):
         if event.validation_status != V.ACCEPTED or event.transaction_type in {T.REVERSAL, T.CREDIT_SALE, T.RECEIVABLE, T.PAYABLE, T.BALANCE_SNAPSHOT}:
             continue
@@ -128,22 +176,44 @@ def reconcile(events: list[CanonicalEvent]) -> list[CanonicalEvent]:
                 for j, p in nearby:
                     result[j] = review(p, R.AMBIGUOUS_MATCH)
     by_id = {e.event_id: e for e in result}
+    history = {e.event_id: e for e in (lineage if lineage is not None else events)}
+    aliases = lineage_current_ids(list(history.values()))
+    incompatible: set[UUID] = set()
+    # A corrected reversal can itself disappear from the eligible input. Its
+    # previously effective relationship still requires review, never resurrection.
+    for previous in history.values():
+        latest_id = aliases.get(previous.event_id, previous.event_id)
+        if (previous.transaction_type != T.REVERSAL or previous.validation_status != V.ACCEPTED
+                or latest_id == previous.event_id or as_of is not None and previous.event_timestamp >= as_of):
+            continue
+        latest = history[latest_id]
+        if (latest.validation_status != V.ACCEPTED
+                or reversal_economic_identity(latest) != reversal_economic_identity(previous)):
+            incompatible.add(aliases.get(previous.reversal_of_event_id, previous.reversal_of_event_id))
+            incompatible.add(aliases.get(latest.reversal_of_event_id, latest.reversal_of_event_id))
+            incompatible.add(latest_id)
     reversed_ids: set[UUID] = set()
     settled: dict[UUID, Decimal] = {}
     for i, event in enumerate(result):
         if event.validation_status != V.ACCEPTED or event.duplicate_of_event_id:
             continue
         if event.transaction_type == T.REVERSAL:
-            original = by_id.get(event.reversal_of_event_id)
+            original = by_id.get(aliases.get(event.reversal_of_event_id, event.reversal_of_event_id))
+            linked_version = history.get(event.reversal_of_event_id)
+            compatible = (original is not None and linked_version is not None
+                          and reversal_economic_identity(original) == reversal_economic_identity(linked_version))
             valid = (original is not None and original.validation_status == V.ACCEPTED
                      and original.duplicate_of_event_id is None and original.transaction_type != T.REVERSAL
                      and original.applicant_id == event.applicant_id and original.account_id == event.account_id
                      and original.currency == event.currency and original.amount == event.amount
                      and original.fee == event.fee and original.event_timestamp <= event.event_timestamp
-                     and original.direction != event.direction and original.direction in {D.INFLOW, D.OUTFLOW}
-                     and original.event_id not in reversed_ids)
+                     and {D.INFLOW: D.OUTFLOW, D.OUTFLOW: D.INFLOW}.get(original.direction) == event.direction
+                     and original.event_id not in reversed_ids and compatible)
             if not valid:
                 result[i] = review(event, R.INVALID_LINK)
+                # Corrections cannot silently resurrect a previously canceled movement.
+                if original is not None and (original.event_id != event.reversal_of_event_id or event.supersedes_event_id):
+                    incompatible.add(original.event_id)
             else:
                 reversed_ids.add(original.event_id)
         if event.transaction_type == T.SETTLEMENT:
@@ -158,7 +228,7 @@ def reconcile(events: list[CanonicalEvent]) -> list[CanonicalEvent]:
                 result[i] = review(event, R.INVALID_LINK)
             else:
                 settled[original.event_id] = amount
-    return result
+    return [review(e, R.INVALID_LINK) if e.event_id in incompatible else e for e in result]
 
 
 def reconcile_balance(before: Decimal | None, after: Decimal | None,

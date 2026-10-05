@@ -71,7 +71,7 @@ def test_sms_intake_creates_candidate_review_job_and_pending_event(client):
 
 @pytest.mark.parametrize("text", ["unsupported 100 balance 9000", "SYNTHETIC: Payment Tk 100.00. Fee Tk 0.00. TrxID A."])
 def test_unsupported_and_missing_time_retained_without_imputation(client, text):
-    result = client.post("/api/v1/intake/sms", json=sms_payload(text=text)).json()
+    result = client.post("/api/v1/intake/sms", json=sms_payload(text=text), headers=REVIEWER).json()
     assert result["status"] == "NEEDS_REVIEW"
     assert result["event_id"] is None
 
@@ -86,7 +86,7 @@ def test_document_preprocessing_blocked_model_job_no_private_paths(client, servi
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     response = client.post("/api/v1/intake/document", json={"applicant_id": str(APPLICANT),
-        "content_base64": base64.b64encode(buffer.getvalue()).decode()})
+        "content_base64": base64.b64encode(buffer.getvalue()).decode(), "synthetic": True})
     assert response.status_code == 201
     assert response.json()["status"] == "BLOCKED_MODEL_ARTIFACT"
     assert str(service.private_dir) not in response.text
@@ -97,7 +97,7 @@ def test_document_preprocessing_blocked_model_job_no_private_paths(client, servi
 
 @pytest.mark.parametrize("content", ["invalid-base64!", base64.b64encode(b"not an image").decode()])
 def test_invalid_document_safe_error(client, content):
-    result = client.post("/api/v1/intake/document", json={"applicant_id": str(APPLICANT), "content_base64": content})
+    result = client.post("/api/v1/intake/document", json={"applicant_id": str(APPLICANT), "content_base64": content, "synthetic": True})
     assert result.status_code == 422
     assert "Traceback" not in result.text
 
@@ -255,7 +255,7 @@ def test_model_calibrator_mismatch_rejected(service):
 def test_unsupported_candidate_requires_explicit_reviewed_facts(client, service):
     from agrogami.schemas import CandidateExtraction, Provenance
     payload = sms_payload(text="unsupported ambiguous source")
-    job = client.post("/api/v1/intake/sms", json=payload).json()
+    job = client.post("/api/v1/intake/sms", json=payload, headers=REVIEWER).json()
     original = service.store.get(CandidateExtraction, UUID(job["candidate_id"]))
     source = service.store.get(Source, UUID(job["source_id"]))
     event = fixture_event("reviewed-candidate", account_id=UUID(payload["account_id"]), source_id=source.source_id,

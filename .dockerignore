@@ -5,6 +5,9 @@
 !.env.example
 private_data
 model_cache
+uploads
+.streamlit/secrets.toml
+.vscode/mcp.json
 __pycache__
 **/__pycache__
 .pytest_cache

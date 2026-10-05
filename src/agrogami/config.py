@@ -1,5 +1,6 @@
 """Central configuration; no model execution is implemented."""
 from pathlib import Path
+from uuid import UUID
 from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,8 +14,10 @@ class Settings(BaseSettings):
     model_cache_dir: Path = Path("model_cache")
     log_level: str = "INFO"
     demo_mode: bool = True
+    local_demo_mode: bool = False
     enable_real_models: bool = False
     demo_tokens: dict[str, str] = Field(default_factory=dict, repr=False)
+    applicant_grants: dict[str, tuple[UUID, ...]] = Field(default_factory=dict, repr=False)
     risk_model_path: Path | None = None
     calibrator_path: Path | None = None
     shap_background_path: Path | None = None
@@ -31,6 +34,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def safe_mode(self) -> "Settings":
+        if self.local_demo_mode and self.env.strip().lower() in {"production", "deployment", "public"}:
+            raise ValueError("local demo access cannot be enabled in a deployment environment")
         if self.demo_mode and self.enable_real_models:
             raise ValueError("real models cannot be enabled in demo mode")
         if any(role not in {"viewer", "reviewer", "admin"} for role in self.demo_tokens.values()):

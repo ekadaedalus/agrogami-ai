@@ -6,7 +6,7 @@ from hashlib import sha256
 from uuid import UUID, uuid5, NAMESPACE_URL
 from agrogami.schemas import (CanonicalEvent, Coverage, FeatureSnapshot, FeatureValue,
                               TransactionType as T, TransactionDirection as D, ValidationStatus as V)
-from agrogami.validation.rules import reconcile
+from agrogami.validation.rules import reconcile, lineage_current_ids, replace
 
 EPSILON = Decimal("0.01")  # one hundredth of a BDT; numeric stability only
 
@@ -19,11 +19,11 @@ def quantile(values: list[Decimal], q: Decimal) -> Decimal:
     return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
 
 
-def current_as_of(events: list[CanonicalEvent], t0: datetime) -> list[CanonicalEvent]:
-    available = [e for e in events if e.created_at < t0 and e.ingestion_timestamp < t0
-                 and e.event_timestamp < t0]
+def current_as_of(events: list[CanonicalEvent], t0: datetime, *, include_future: bool = False) -> list[CanonicalEvent]:
+    # Knowledge time resolves immutable versions before economic time eligibility.
+    available = [e for e in events if e.created_at < t0 and e.ingestion_timestamp < t0]
     superseded = {e.supersedes_event_id for e in available}
-    return [e for e in available if e.event_id not in superseded]
+    return [e for e in available if e.event_id not in superseded and (include_future or e.event_timestamp < t0)]
 
 
 def build_features(events: list[CanonicalEvent], *, applicant_id: UUID, t0: datetime,
@@ -40,17 +40,30 @@ def build_features(events: list[CanonicalEvent], *, applicant_id: UUID, t0: date
     days = {start.date() + timedelta(days=i) for i in range(window_days)}
     if t0.time() != datetime.min.time():
         days = {d for d in days if datetime.combine(d, datetime.min.time(), timezone.utc) >= start}
-    available = current_as_of([e for e in events if e.applicant_id == applicant_id], t0)
-    accepted_input = [e for e in available if e.validation_status == V.ACCEPTED and e.currency == currency]
-    reconciled = reconcile(accepted_input)
+    known_current = current_as_of([e for e in events if e.applicant_id == applicant_id], t0, include_future=True)
+    available = [e for e in known_current if e.event_timestamp < t0]
+    history = [e for e in events if e.applicant_id == applicant_id
+               and e.created_at < t0 and e.ingestion_timestamp < t0]
+    aliases = lineage_current_ids(history)
+    inputs = [e for e in available if e.currency == currency]
+    input_by_id = {e.event_id: e for e in inputs}
+    reconciled = reconcile(inputs, lineage=history, as_of=t0)
+    # Unresolved records inform matching but cannot be promoted by feature reads.
+    reconciled = [replace(e, validation_status=input_by_id[e.event_id].validation_status)
+                  if e.validation_status == V.ACCEPTED and input_by_id[e.event_id].validation_status != V.ACCEPTED
+                  else e for e in reconciled]
     valid = [e for e in reconciled if e.validation_status == V.ACCEPTED and not e.duplicate_of_event_id]
-    cancelled = {e.reversal_of_event_id for e in valid if e.transaction_type == T.REVERSAL}
+    cancelled = {aliases.get(e.reversal_of_event_id, e.reversal_of_event_id)
+                 for e in valid if e.transaction_type == T.REVERSAL}
     cancellations = [e for e in valid if e.transaction_type == T.REVERSAL]
     economic = [e for e in valid if e.event_id not in cancelled and e.transaction_type != T.REVERSAL
                 and start <= e.event_timestamp < t0]
     reconciled_by_id = {e.event_id: e for e in reconciled}
     window = [reconciled_by_id.get(e.event_id, e) for e in available if start <= e.event_timestamp < t0]
     window_ids = tuple(sorted((e.event_id for e in window), key=str))
+    review_window = [reconciled_by_id.get(e.event_id, e) for e in known_current
+                     if start <= e.event_timestamp < t0
+                     or e.due_date is not None and start.date() <= e.due_date < t0.date()]
     evidence_ids = tuple(sorted(set(coverage.evidence_event_ids) & {e.event_id for e in available}, key=str))
     # Fees on own/medium movements require a separate, explicitly external event in v1.
     cash = [e for e in economic if e.ownership == "external"
@@ -70,7 +83,8 @@ def build_features(events: list[CanonicalEvent], *, applicant_id: UUID, t0: date
 
     inflow = sum((e.amount for e in inflows), Decimal(0))
     outflow = sum((e.amount + e.fee for e in outflows), Decimal(0))
-    reversal_evidence = [e for e in cancellations if e.reversal_of_event_id in {x.event_id for x in window}]
+    reversal_evidence = [e for e in cancellations
+                         if aliases.get(e.reversal_of_event_id, e.reversal_of_event_id) in {x.event_id for x in window}]
     put("external_inflow_total", inflow if inflows or complete else None, inflows + reversal_evidence, unknown)
     put("external_outflow_total", outflow if outflows or complete else None, outflows + reversal_evidence, unknown)
     put("net_external_cash_flow", inflow - outflow if cash or complete else None, cash + reversal_evidence, unknown)
@@ -88,7 +102,11 @@ def build_features(events: list[CanonicalEvent], *, applicant_id: UUID, t0: date
         () if complete else ("CV uses attested complete days only; unobserved days omitted",))
     obligations = [e for e in valid if e.event_id not in cancelled and e.transaction_type != T.REVERSAL
                    and e.due_date is not None and start.date() <= e.due_date < t0.date()]
-    obligation_complete = days <= set(coverage.obligation_complete_days) and len(days) == window_days
+    unresolved_obligations = [e for e in review_window if e.due_date is not None
+                              and start.date() <= e.due_date < t0.date()
+                              and e.validation_status != V.ACCEPTED]
+    obligation_complete = (days <= set(coverage.obligation_complete_days) and len(days) == window_days
+                           and not unresolved_obligations)
     payment_complete = all(e.payment_date is not None and e.payment_date < t0.date()
                            or e.payment_record_complete for e in obligations)
     paid = [e for e in obligations if e.payment_date is not None and e.payment_date < t0.date()]
@@ -100,9 +118,9 @@ def build_features(events: list[CanonicalEvent], *, applicant_id: UUID, t0: date
     if obligation_complete and not obligations:
         obligation_reason = ("no_verified_obligations_due",)
     put("payment_punctuality", Decimal(punctual) / len(obligations) if obligation_complete and payment_complete and obligations else None,
-        obligations + list(evidence_ids), obligation_reason)
+        obligations + unresolved_obligations + list(evidence_ids), obligation_reason)
     put("median_payment_delay_days", quantile(delays, Decimal("0.5")) if obligation_complete and payment_complete and delays else None,
-        paid + list(evidence_ids), obligation_reason or (() if delays else ("no_verified_payments",)))
+        paid + unresolved_obligations + list(evidence_ids), obligation_reason or (() if delays else ("no_verified_payments",)))
     # v1 balances require one account and exactly one verified daily closing value per complete day.
     balances = [e for e in economic if e.balance is not None and e.event_timestamp.date() in days]
     balance_complete = (days <= set(coverage.balance_complete_days) and len(days) == window_days
@@ -130,12 +148,12 @@ def build_features(events: list[CanonicalEvent], *, applicant_id: UUID, t0: date
     put("source_mix", dict(Counter(e.source_type.value for e in window)), window)
     put("balance_coverage", Decimal(len(days & set(coverage.balance_complete_days))) / window_days, evidence_ids, balance_reason)
     put("obligation_coverage", Decimal(len(days & set(coverage.obligation_complete_days))) / window_days, evidence_ids, obligation_reason)
-    reasons = tuple(sorted(set(coverage.reasons) | {r.value for e in window for r in e.review_reason}
-                           | {r for e in window for r in e.missingness.values()}))
-    put("missingness_count", sum(len(e.missingness) + len(e.review_reason) for e in window) + len(coverage.reasons), window)
-    put("missingness_reasons", reasons, window_ids)
-    put("reviewed_event_share", Decimal(sum(e.reviewed for e in window)) / len(window) if window else None, window)
-    put("accepted_event_share", Decimal(sum(e.validation_status == V.ACCEPTED for e in window)) / len(window) if window else None, window)
+    reasons = tuple(sorted(set(coverage.reasons) | {r.value for e in review_window for r in e.review_reason}
+                           | {r for e in review_window for r in e.missingness.values()}))
+    put("missingness_count", sum(len(e.missingness) + len(e.review_reason) for e in review_window) + len(coverage.reasons), review_window)
+    put("missingness_reasons", reasons, review_window)
+    put("reviewed_event_share", Decimal(sum(e.reviewed for e in review_window)) / len(review_window) if review_window else None, review_window)
+    put("accepted_event_share", Decimal(sum(e.validation_status == V.ACCEPTED for e in review_window)) / len(review_window) if review_window else None, review_window)
     snapshot = FeatureSnapshot(applicant_id=applicant_id, scoring_time=t0, window_days=window_days, features=features)
     payload = snapshot.model_dump_json(exclude={"snapshot_id"})
     return FeatureSnapshot.model_validate(snapshot.model_dump() | {

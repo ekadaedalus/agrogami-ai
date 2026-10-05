@@ -1,9 +1,7 @@
 """Versioned local research API. No production authentication or deployment claim."""
 import base64
 import binascii
-import hmac
 import json
-from enum import StrEnum
 from typing import Annotated, Literal, TypeVar
 from uuid import UUID
 from contextlib import asynccontextmanager
@@ -14,6 +12,7 @@ from pydantic import AwareDatetime, Field
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from agrogami.schemas import Contract, Source, CanonicalEvent, CandidateExtraction, Coverage, FeatureSnapshot
 from agrogami.config import Settings
+from agrogami.authorization import Principal, Role, authenticate, can_access_applicant
 from agrogami.storage import Store
 from agrogami.application import ApplicationService, Job, EvaluationRun
 from agrogami.assessment import AssessmentSnapshot
@@ -33,12 +32,6 @@ class ExplanationResponse(Contract):
     reasons: tuple[EvidenceReason, ...]
     tree_shap: TreeExplanation | None
     limitations: tuple[str, ...]
-
-
-class Role(StrEnum):
-    viewer = "viewer"
-    reviewer = "reviewer"
-    admin = "admin"
 
 
 class SMSRequest(Contract):
@@ -78,10 +71,10 @@ class CandidateReviewRequest(Contract):
 
 def create_app(service: ApplicationService | None = None, *, tokens: dict[str, Role] | None = None) -> FastAPI:
     owned = service is None
+    settings = Settings()
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         if owned:
-            settings = Settings()
             model, calibrator, explanation_provider = None, None, None
             from agrogami.extraction.local_models import DebertaAdapter
             from agrogami.extraction.documents import TrOCRAdapter, LayoutLMv3Adapter
@@ -109,29 +102,54 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
         yield
         if owned:
             app.state.service.store.engine.dispose()
-    app = FastAPI(title="Agrogami research backend", version="0.2.0", docs_url="/api/docs",
+    app = FastAPI(title="Agrogami AI", version="0.2.0", docs_url="/api/docs",
+                  summary="Traceable underwriting from financial records traditional credit systems ignore",
+                  description=("An explainable underwriting evidence and risk-audit workbench for thin-file credit. "
+                               "Assessment outputs are illustrative and are not lending decisions or validated "
+                               "individual creditworthiness."),
                   openapi_url="/api/openapi.json", redoc_url=None, lifespan=lifespan)
     app.state.service = service
-    # Map secrets to roles. Empty map permits viewer reads only; it never trusts role headers.
+    # Credentials and scope are server-owned; request role headers are never trusted.
     if tokens is None:
-        configured = Settings().demo_tokens
+        configured = settings.demo_tokens
         tokens = {token: Role(role) for token, role in configured.items()}
 
-    def role(x_agrogami_token: Annotated[str | None, Header()] = None) -> Role:
-        if x_agrogami_token is None:
-            return Role.viewer
-        for token, granted in tokens.items():
-            if hmac.compare_digest(x_agrogami_token, token):
-                return granted
-        raise HTTPException(401, "Invalid demo credential")
+    def role(x_agrogami_token: Annotated[str | None, Header()] = None) -> Principal:
+        if x_agrogami_token is None and settings.local_demo_mode:
+            return Principal(Role.viewer, authenticated=False, local_demo=True)
+        principal = authenticate(x_agrogami_token, settings, tokens=tokens)
+        if principal is None:
+            raise HTTPException(401, "Valid credential required")
+        return principal
 
-    def reviewer(current: Annotated[Role, Depends(role)]) -> Role:
-        if current not in {Role.reviewer, Role.admin}:
+    def reviewer(current: Annotated[Principal, Depends(role)]) -> Principal:
+        if not current.can("review"):
             raise HTTPException(403, "Reviewer or admin role required")
         return current
 
-    def reader(current: Annotated[Role, Depends(role)]) -> Role:
+    def reader(current: Annotated[Principal, Depends(role)]) -> Principal:
         return current
+
+    def writer(current: Annotated[Principal, Depends(role)]) -> Principal:
+        if not current.local_demo and not current.can("intake"):
+            raise HTTPException(403, "Authorized write role required")
+        return current
+
+    def applicant_access(current: Principal, applicant_id: UUID, service: ApplicationService) -> None:
+        if not can_access_applicant(current, applicant_id, service.store):
+            raise HTTPException(403, "Applicant access denied")
+
+    def source_access(current: Principal, source_id: UUID, service: ApplicationService) -> Source:
+        record = found(service.store.get(Source, source_id))
+        applicant_access(current, record.applicant_id, service)
+        if not current.authenticated and not record.synthetic:
+            raise HTTPException(403, "Credential required for private evidence")
+        return record
+
+    def intake_access(current: Principal, applicant_id: UUID, service: ApplicationService, *, synthetic: bool) -> None:
+        applicant_access(current, applicant_id, service)
+        if not synthetic and not current.can("intake"):
+            raise HTTPException(403, "Authorized write role required for private evidence")
 
     def domain(request: Request) -> ApplicationService:
         return request.app.state.service
@@ -140,6 +158,13 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
         if value is None:
             raise HTTPException(404, "Record not found")
         return value
+
+    def public_snapshot(record: AssessmentSnapshot) -> AssessmentSnapshot:
+        """Keep private experiment membership in the immutable journal only."""
+        if record.model_artifact is None:
+            return record
+        artifact = record.model_artifact.model_copy(update={"training_sample_ids": (), "training_lineage": None})
+        return record.model_copy(update={"model_artifact": artifact})
 
     @app.exception_handler(RequestValidationError)
     async def request_error(request: Request, exc: RequestValidationError):
@@ -166,7 +191,7 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
         return HealthResponse()
 
     from agrogami.api.project_docs import router as docs_router
-    app.include_router(docs_router(Settings().docs_dir))
+    app.include_router(docs_router(settings.docs_dir))
 
     @app.get("/ready")
     def ready(service: Annotated[ApplicationService, Depends(domain)]) -> dict:
@@ -176,18 +201,25 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
         return {"status": "ready", "database": "available", "optional_models": {
             "deberta": service.deberta is not None, "trocr": service.trocr is not None,
             "layoutlmv3": service.layout is not None, "risk": service.model is not None},
-            "mcp_enabled": Settings().mcp_enabled}
+            "mcp_enabled": settings.mcp_enabled}
 
     @app.get("/api/v1/candidates/{candidate_id}", response_model=CandidateExtraction, dependencies=[Depends(reviewer)])
-    def candidate(candidate_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> CandidateExtraction:
-        return found(service.store.get(CandidateExtraction, candidate_id))
+    def candidate(candidate_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+                  current: Annotated[Principal, Depends(reviewer)]) -> CandidateExtraction:
+        record = found(service.store.get(CandidateExtraction, candidate_id))
+        source_access(current, record.source_id, service)
+        return record
 
-    @app.post("/api/v1/intake/sms", response_model=Job, dependencies=[Depends(reader)], status_code=201)
-    def sms(payload: SMSRequest, service: Annotated[ApplicationService, Depends(domain)]) -> Job:
+    @app.post("/api/v1/intake/sms", response_model=Job, dependencies=[Depends(writer)], status_code=201)
+    def sms(payload: SMSRequest, service: Annotated[ApplicationService, Depends(domain)],
+            current: Annotated[Principal, Depends(writer)]) -> Job:
+        intake_access(current, payload.applicant_id, service, synthetic=payload.text.startswith("SYNTHETIC:"))
         return service.sms_intake(**payload.model_dump())
 
-    @app.post("/api/v1/intake/document", response_model=Job, dependencies=[Depends(reader)], status_code=201)
-    def document(payload: DocumentRequest, service: Annotated[ApplicationService, Depends(domain)]) -> Job:
+    @app.post("/api/v1/intake/document", response_model=Job, dependencies=[Depends(writer)], status_code=201)
+    def document(payload: DocumentRequest, service: Annotated[ApplicationService, Depends(domain)],
+                 current: Annotated[Principal, Depends(writer)]) -> Job:
+        intake_access(current, payload.applicant_id, service, synthetic=payload.synthetic)
         try:
             content = base64.b64decode(payload.content_base64, validate=True)
         except binascii.Error:
@@ -196,27 +228,36 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
                                       orientation=payload.orientation, deskew_degrees=payload.deskew_degrees, synthetic=payload.synthetic)
 
     @app.get("/api/v1/jobs/{job_id}", response_model=Job, dependencies=[Depends(reader)])
-    def job(job_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> Job:
-        return found(service.records.get(Job, job_id))
+    def job(job_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+            current: Annotated[Principal, Depends(reader)]) -> Job:
+        record = found(service.records.get(Job, job_id))
+        source_access(current, record.source_id, service)
+        return record
 
     @app.get("/api/v1/sources/{source_id}", response_model=Source, dependencies=[Depends(reader)])
-    def source(source_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> Source:
-        record = found(service.store.get(Source, source_id))
+    def source(source_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+               current: Annotated[Principal, Depends(reader)]) -> Source:
+        record = source_access(current, source_id, service)
         safe_metadata = {k: v for k, v in record.metadata.items() if k in {"width", "height", "preprocess_version", "label"}}
         return Source.model_validate(record.model_dump() | {"metadata": safe_metadata})
 
     @app.get("/api/v1/applicants/{applicant_id}/events", response_model=list[CanonicalEvent], dependencies=[Depends(reader)])
-    def events(applicant_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> list[CanonicalEvent]:
+    def events(applicant_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+               current: Annotated[Principal, Depends(reader)]) -> list[CanonicalEvent]:
+        applicant_access(current, applicant_id, service)
         return service.store.events(applicant_id)
 
     @app.post("/api/v1/events/{event_id}/review", response_model=CanonicalEvent, dependencies=[Depends(reviewer)])
-    def review(event_id: UUID, payload: ReviewRequest, service: Annotated[ApplicationService, Depends(domain)]) -> CanonicalEvent:
-        found(service.store.get(CanonicalEvent, event_id))
+    def review(event_id: UUID, payload: ReviewRequest, service: Annotated[ApplicationService, Depends(domain)],
+               current: Annotated[Principal, Depends(reviewer)]) -> CanonicalEvent:
+        applicant_access(current, found(service.store.get(CanonicalEvent, event_id)).applicant_id, service)
         return service.review(event_id, payload.changes, payload.reason, payload.reviewer_alias)
 
     @app.get("/api/v1/applicants/{applicant_id}/features", response_model=dict[int, FeatureSnapshot], dependencies=[Depends(reader)])
     def features(applicant_id: UUID, scoring_time: AwareDatetime, service: Annotated[ApplicationService, Depends(domain)],
+                 current: Annotated[Principal, Depends(reader)],
                  coverage_json: str | None = Query(default=None, max_length=50000)) -> dict[int, FeatureSnapshot]:
+        applicant_access(current, applicant_id, service)
         if coverage_json:
             coverage = Coverage.model_validate_json(coverage_json)
         else:
@@ -227,31 +268,44 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
 
     @app.post("/api/v1/candidates/{candidate_id}/review", response_model=CanonicalEvent, dependencies=[Depends(reviewer)], status_code=201)
     def candidate_review(candidate_id: UUID, payload: CandidateReviewRequest,
-                         service: Annotated[ApplicationService, Depends(domain)]) -> CanonicalEvent:
+                         service: Annotated[ApplicationService, Depends(domain)],
+                         current: Annotated[Principal, Depends(reviewer)]) -> CanonicalEvent:
+        candidate = found(service.store.get(CandidateExtraction, candidate_id))
+        source_access(current, candidate.source_id, service)
+        applicant_access(current, payload.event.applicant_id, service)
         return service.accept_candidate(candidate_id, payload.event, payload.reason, payload.reviewer_alias)
 
     @app.post("/api/v1/assessments", response_model=AssessmentSnapshot, dependencies=[Depends(reviewer)], status_code=201)
-    def assessment(payload: AssessmentRequest, service: Annotated[ApplicationService, Depends(domain)]) -> AssessmentSnapshot:
-        return service.assessment(applicant_id=payload.applicant_id, t0=payload.assessment_time, coverage=payload.coverage,
-                                  window_days=payload.window_days, previous_id=payload.supersedes_assessment_id)
+    def assessment(payload: AssessmentRequest, service: Annotated[ApplicationService, Depends(domain)],
+                   current: Annotated[Principal, Depends(reviewer)]) -> AssessmentSnapshot:
+        applicant_access(current, payload.applicant_id, service)
+        return public_snapshot(service.assessment(applicant_id=payload.applicant_id, t0=payload.assessment_time, coverage=payload.coverage,
+                                  window_days=payload.window_days, previous_id=payload.supersedes_assessment_id))
 
     @app.get("/api/v1/assessments/{assessment_id}", response_model=AssessmentSnapshot, dependencies=[Depends(reader)])
-    def get_assessment(assessment_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> AssessmentSnapshot:
-        return found(service.records.get(AssessmentSnapshot, assessment_id))
+    def get_assessment(assessment_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+                       current: Annotated[Principal, Depends(reader)]) -> AssessmentSnapshot:
+        record = found(service.records.get(AssessmentSnapshot, assessment_id))
+        applicant_access(current, record.applicant_id, service)
+        return public_snapshot(record)
 
     @app.get("/api/v1/applicants/{applicant_id}/assessments", response_model=list[AssessmentSnapshot], dependencies=[Depends(reader)])
-    def assessment_history(applicant_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> list[AssessmentSnapshot]:
-        return service.records.assessments(applicant_id)
+    def assessment_history(applicant_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+                           current: Annotated[Principal, Depends(reader)]) -> list[AssessmentSnapshot]:
+        applicant_access(current, applicant_id, service)
+        return [public_snapshot(record) for record in service.records.assessments(applicant_id)]
 
     @app.get("/api/v1/assessments/{assessment_id}/explanation", response_model=ExplanationResponse, dependencies=[Depends(reader)])
-    def explanation(assessment_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> ExplanationResponse:
+    def explanation(assessment_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+                    current: Annotated[Principal, Depends(reader)]) -> ExplanationResponse:
         record = found(service.records.get(AssessmentSnapshot, assessment_id))
+        applicant_access(current, record.applicant_id, service)
         return ExplanationResponse(reasons=record.reasons, tree_shap=record.explanation_metadata, limitations=record.limitations)
 
     @app.get("/api/v1/evaluations/{run_id}", response_model=EvaluationRun, dependencies=[Depends(reader)])
     def evaluation(run_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> EvaluationRun:
         record = found(service.records.get(EvaluationRun, run_id))
-        return EvaluationRun.model_validate(record.model_dump() | {"fairness": None})
+        return EvaluationRun.model_validate(record.model_dump() | {"fairness": None, "private_lineage": None})
 
     @app.get("/api/v1/evaluations/{run_id}/fairness", response_model=FairnessReport, dependencies=[Depends(reviewer)])
     def fairness(run_id: UUID, service: Annotated[ApplicationService, Depends(domain)]) -> FairnessReport:

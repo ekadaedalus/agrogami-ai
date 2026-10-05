@@ -1,5 +1,4 @@
 """Agrogami Prism: four read-only tools over the existing application service."""
-import hmac
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -10,6 +9,7 @@ from starlette.responses import JSONResponse
 from agrogami.application import ApplicationService, EvaluationRun
 from agrogami.assessment import AssessmentSnapshot
 from agrogami.config import Settings
+from agrogami.authorization import Principal, authenticate, can_access_applicant
 from agrogami.schemas import ValidationStatus
 from agrogami.storage import Store
 
@@ -66,17 +66,11 @@ class Gateway:
         return {"run_id": str(record.run_id), "scope": record.scope.value, "dataset_id": record.dataset_id,
                 "fairness": record.fairness.model_dump(mode="json"), "limitations": record.limitations}
 
-def credential_role(headers, settings: Settings) -> str | None:
+def credential_principal(headers, settings: Settings) -> Principal | None:
     authorization = headers.get("authorization", "")
     if not authorization.startswith("Bearer "):
         return None
-    supplied = authorization[7:]
-    for token, role in settings.demo_tokens.items():
-        if hmac.compare_digest(supplied.encode(), token.encode()):
-            return role
-    if settings.mcp_auth_token and hmac.compare_digest(supplied.encode(), settings.mcp_auth_token.encode()):
-        return "viewer"
-    return None
+    return authenticate(authorization[7:], settings, prism=True)
 
 class AuthorizedApp:
     """Pure ASGI boundary; authentication precedes MCP protocol parsing."""
@@ -86,7 +80,7 @@ class AuthorizedApp:
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
             from starlette.datastructures import Headers
-            if credential_role(Headers(scope=scope), self.settings) is None:
+            if credential_principal(Headers(scope=scope), self.settings) is None:
                 await JSONResponse({"detail": "Prism credential required"}, status_code=401)(scope, receive, send)
                 return
         await self.app(scope, receive, send)
@@ -115,8 +109,24 @@ def create_prism(service: ApplicationService | None = None, settings: Settings |
             allowed_hosts=["127.0.0.1:*", "localhost:*"], allowed_origins=["http://127.0.0.1:*", "http://localhost:*"]),
         log_level="ERROR", lifespan=lifespan)
 
-    def read(operation, identifier):
+    def read(operation, identifier, ctx: Context):
         try:
+            request = ctx.request_context.request
+            principal = credential_principal(request.headers, settings) if request is not None else None
+            if principal is None:
+                raise ValueError("Prism credential required")
+            if operation == "fairness":
+                if not principal.can("fairness"):
+                    raise ValueError("Reviewer/admin role required")
+            else:
+                applicant_id = identifier
+                if operation in {"snapshot", "explanation"}:
+                    record = service.records.get(AssessmentSnapshot, identifier)
+                    if record is None:
+                        raise ValueError("Record not found")
+                    applicant_id = record.applicant_id
+                if not can_access_applicant(principal, applicant_id, service.store):
+                    raise ValueError("Applicant access denied")
             return getattr(Gateway(service), operation)(identifier)
         except ValueError:
             raise ValueError("Requested research record unavailable") from None
@@ -124,27 +134,24 @@ def create_prism(service: ApplicationService | None = None, settings: Settings |
             raise ValueError("Research storage unavailable") from None
 
     @server.tool()
-    def get_evidence_ledger(applicant_id: UUID) -> dict:
+    def get_evidence_ledger(applicant_id: UUID, ctx: Context) -> dict:
         """Read accepted canonical event versions and minimized provenance."""
-        return read("ledger", applicant_id)
+        return read("ledger", applicant_id, ctx)
 
     @server.tool()
-    def get_assessment_snapshot(assessment_id: UUID) -> dict:
+    def get_assessment_snapshot(assessment_id: UUID, ctx: Context) -> dict:
         """Read an immutable research snapshot, preserving null scores and scope."""
-        return read("snapshot", assessment_id)
+        return read("snapshot", assessment_id, ctx)
 
     @server.tool()
-    def get_explanation_factors(assessment_id: UUID) -> dict:
+    def get_explanation_factors(assessment_id: UUID, ctx: Context) -> dict:
         """Read stored reasons/TreeSHAP; never recompute model explanations."""
-        return read("explanation", assessment_id)
+        return read("explanation", assessment_id, ctx)
 
     @server.tool()
     def get_fairness_audit(run_id: UUID, ctx: Context) -> dict:
         """Read aggregate fairness only for reviewer/admin credentials."""
-        request = ctx.request_context.request
-        if request is None or credential_role(request.headers, settings) not in {"reviewer", "admin"}:
-            raise ValueError("Reviewer/admin role required")
-        return read("fairness", run_id)
+        return read("fairness", run_id, ctx)
 
     application = server.streamable_http_app()
     for name, logger in logging.Logger.manager.loggerDict.copy().items():

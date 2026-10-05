@@ -1,8 +1,16 @@
-# Local research demonstration
+# Agrogami AI
+
+Traceable underwriting from financial records traditional credit systems ignore
+
+An explainable underwriting evidence and risk-audit workbench for thin-file credit.
+
+**Demo environment**
+
+This demonstration uses synthetic, sample, or de-identified financial records. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness.
 
 ## Project overview, problem and target users
 
-Agrogami AI explores traceable alternative-credit evidence for researchers and human evidence reviewers working with mobile-money messages, bills and paper ledgers. Unstructured records can be incomplete and contradictory. Sparse activity or variable income does not establish inability to repay. This is not an autonomous lender.
+Turn mobile-money messages, informal ledger records, receipts, and bills into traceable financial evidence for thin-file credit assessment. Agrogami AI supports human evidence reviewers and risk auditors examining these records. Unstructured records can be incomplete and contradictory. Sparse activity or variable income does not establish inability to repay. This is not an autonomous lender.
 
 ## Current scope and implemented vs planned
 
@@ -35,12 +43,16 @@ Included records/templates are SYNTHETIC. Public benchmark identity, original ta
 ## Demo walkthrough
 
 1. Install local/test extras and configure a reviewer secret in ignored .env; start API and UI.
-2. Enter the reviewer credential in the sidebar, keep the generated applicant UUID and choose Intake / Samples, SYNTHETIC, External inflow. Submit the marked SMS.
-3. Evidence Review shows original/normalized fields, parser/confidence and hash-linked spans. Corroborate synthetic ownership as external and append a reviewed version.
-4. Event Ledger shows preserved versions; Feature Summary shows actual 30/60/90 outputs and null coverage-dependent ratios.
-5. Assessment creates an honest unknown-coverage snapshot with null score; Explanation shows actual insufficient-evidence reasons.
-6. Correct an accepted amount with a Decimal string and reason. Audit / Versions shows supersession and a fresh unscored assessment; old snapshots are unchanged.
-7. Evaluation / Fairness requires an actual stored evaluation UUID. No fabricated charts exist. Optional Prism reads these same services.
+2. Expand Developer settings in the sidebar to enter the reviewer credential. API URL and Applicant UUID are in the same collapsed section; keep the generated applicant UUID. Choose Applicant Evidence, SYNTHETIC, External inflow and submit the marked SMS.
+3. Evidence Review leads with Needs review, Ownership not confirmed, the actual amount and the marked synthetic source. Technical evidence retains original/normalized JSON, UUIDs, parser/template versions, confidence, SHA-256, span_start/span_end and audit codes such as AMBIGUOUS_OWNERSHIP. Corroborate synthetic ownership as external and append a reviewed version.
+4. Event Ledger shows preserved versions. Financial Profile summarizes verified inflow, evidence coverage, payment history and balance history from the existing backend values. Detailed underwriting evidence retains the full 30/60/90-day tables and null coverage-dependent ratios, with readable measure labels and shortened event identifiers. Exact keys and full identifiers remain in Technical evidence. A sample inflow never establishes complete cash flow or payment/balance histories.
+5. In Assessment, select **Assess available evidence** to create an unknown-coverage snapshot, or expand **Load assessment** to inspect an existing one. For INSUFFICIENT_EVIDENCE, the primary result is **Assessment withheld — Insufficient evidence**, with a null score. Explain the actual missing histories and artifact limitations; retain system state, reason codes, scope and full snapshot in Technical evidence. Explanation shows the stored evidence reasons, or prompts the user to run or load an assessment when none is selected.
+6. Correct an accepted amount with a Decimal string and reason. Audit Trail preserves supersession and a fresh unscored assessment; old snapshots are unchanged and remain inspectable in Technical evidence.
+7. Fairness & Evaluation retains the representative-outcomes limitation; **Advanced lookup** holds the optional stored evaluation UUID. No fabricated charts exist. Optional Prism reads these same services.
+
+The full navigation is Overview, Applicant Evidence, Evidence Review, Event Ledger, Financial Profile, Assessment, Explanation, Fairness & Evaluation, Audit Trail and Documentation. Present the workflow before opening developer settings or technical drill-down; those details remain available throughout review.
+
+The full Agrogami AI hero appears only on Overview. Other pages use a title and one helper line. A compact light-amber demo notice remains visible, while only the Deploy button and heading link anchors are hidden. The Streamlit header, toolbar and sidebar collapse/expand controls remain visible. Evidence Review uses **Review candidate evidence** for its lookup. Empty Event Ledger and Audit Trail views prompt the user to add and review evidence; full UUIDs, hashes and JSON remain available in collapsed Technical evidence.
 
 ## API, project docs, Agrogami Prism and CloudCamp usage
 
@@ -48,7 +60,7 @@ API localhost:8000; Swagger /api/docs; OpenAPI /api/openapi.json; project /docs.
 
 ## Development environment, tech stack and reproducibility
 
-Tested Python 3.14.8 on Windows. VS Code is the supplied IDE; coding assistants are development tools only. No generative underwriting, RAG scoring, workflow orchestration platform, local LLM runtime or live lender integration is implemented. Pydantic v2, SQLAlchemy, FastAPI, NumPy/sklearn, Streamlit and official MCP SDK support the local prototype. README provides exact commands. Default tests are offline; live runtime verification launches isolated processes and cleans them up.
+Tested Python 3.14.8 on Windows. VS Code is the supplied IDE; coding assistants are development tools only. No generative underwriting, RAG scoring, workflow orchestration platform, local LLM runtime or live lender integration is implemented. Pydantic v2, SQLAlchemy, FastAPI, NumPy/sklearn, Streamlit and official MCP SDK support the local workbench. README provides exact commands. Default tests are offline; live runtime verification launches isolated processes and cleans them up.
 
 ## Limitations and changelog
 

@@ -1,0 +1,19 @@
+{
+  "servers": {
+    "agrogamiPrism": {
+      "type": "http",
+      "url": "http://127.0.0.1:8001/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:agrogami-prism-token}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "agrogami-prism-token",
+      "description": "Agrogami Prism local credential",
+      "password": true
+    }
+  ]
+}

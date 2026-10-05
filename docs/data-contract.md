@@ -52,4 +52,6 @@ ProtectedAuditAttributes is separately persisted with applicant, attributes and 
 
 DocumentRequest adds synthetic: bool=false; intake persists this explicit marker and accepts no upload filename/path. GET /api/v1/candidates/{id} requires reviewer/admin and intentionally returns original field candidates/provenance, never source object paths. APIClient validates typed jobs/candidates/events/snapshots; other JSON views preserve the backend contract without financial transformations. Unsupported input and absent checkpoints remain review/blocker states.
 
+Presentation labels do not rename contract enums or reason codes. Ownership not confirmed retains audit code AMBIGUOUS_OWNERSHIP; Insufficient evidence to assess retains system state INSUFFICIENT_EVIDENCE. Technical evidence preserves complete payloads, source locations/hashes, parser/template details and immutable lineage. Assessment withheld never changes a null score or implies that missing evidence establishes poor creditworthiness.
+
 Prism exposes accepted event versions with allowlisted fields and stored assessment/explanation/aggregate fairness values. Unknown applicant ledger is empty, not fabricated; unknown snapshot/evaluation is a safe tool error. Viewer cannot access fairness groups. No mutation or risk/explanation recalculation is performed.

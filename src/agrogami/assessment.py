@@ -8,7 +8,7 @@ from agrogami.schemas import Contract, FeatureSnapshot, Coverage, CanonicalEvent
 from agrogami.features import build_features
 from agrogami.features.engine import current_as_of
 from agrogami.risk.models import ModelArtifact, RiskModel, ValidationScope
-from agrogami.calibration.core import Calibrator, project_score
+from agrogami.calibration.core import Calibrator, project_score, validate_model_calibrator
 from agrogami.explainability.core import evidence_reasons, EvidenceReason, TreeExplanation
 
 
@@ -72,10 +72,19 @@ def assess(events: list[CanonicalEvent], *, applicant_id: UUID, t0: datetime, co
            explanation_provider: Callable[[dict[str, float]], TreeExplanation] | None = None,
            previous_id: UUID | None = None) -> AssessmentSnapshot:
     snapshot = build_features(events, applicant_id=applicant_id, t0=t0, window_days=window_days, coverage=coverage)
-    available = current_as_of([e for e in events if e.applicant_id == applicant_id], t0)
     start = t0 - timedelta(days=window_days)
-    pending = any(e.validation_status != ValidationStatus.ACCEPTED and e.event_timestamp >= start for e in available)
+    available = [e for e in current_as_of([e for e in events if e.applicant_id == applicant_id], t0, include_future=True)
+                 if e.event_timestamp < t0 or e.due_date is not None and start.date() <= e.due_date < t0.date()]
+    pending = any(e.validation_status != ValidationStatus.ACCEPTED
+                  and (start <= e.event_timestamp < t0
+                       or e.due_date is not None and start.date() <= e.due_date < t0.date()) for e in available)
     sufficient = snapshot.features["observed_day_share"].value == 1
+    due_obligations = any(e.due_date is not None and start.date() <= e.due_date < t0.date() for e in available)
+    denominator_incomplete = due_obligations and any(
+        reason == "complete_obligation_denominator_unknown" or reason.startswith("payment_record_incomplete")
+        for reason in snapshot.features["payment_punctuality"].reasons)
+    if denominator_incomplete:
+        sufficient = False
     if snapshot.features["accepted_event_share"].value is not None and snapshot.features["accepted_event_share"].value < 1:
         pending = True
     limitations = ["Research snapshot, not a lending decision", "Project score is not FICO or bureau-equivalent",
@@ -87,8 +96,10 @@ def assess(events: list[CanonicalEvent], *, applicant_id: UUID, t0: datetime, co
         model_validation_scope=model.artifact.scope if model else ValidationScope.UNTRAINED,
         reasons=evidence_reasons(snapshot, available), supersedes_assessment_id=previous_id)
     status = SnapshotStatus.NEEDS_REVIEW if pending else SnapshotStatus.INSUFFICIENT_EVIDENCE
+    if denominator_incomplete:
+        limitations.append("Incomplete obligation denominator/payment evidence; probabilities and score withheld")
     if not sufficient:
-        limitations.append("Incomplete observation coverage; probabilities and score withheld")
+        limitations.append("Incomplete evidence coverage; probabilities and score withheld")
     elif pending:
         limitations.append("Unresolved evidence review; probabilities and score withheld")
     elif model is None or model.artifact.scope == ValidationScope.UNTRAINED or calibrator is None:
@@ -101,8 +112,7 @@ def assess(events: list[CanonicalEvent], *, applicant_id: UUID, t0: datetime, co
         artifact = model.artifact
         if artifact.window_days != window_days or artifact.feature_schema_version != snapshot.feature_schema_version:
             raise ValueError("model feature schema/window mismatch")
-        if calibrator.artifact.model_artifact_id != str(artifact.artifact_id) or calibrator.artifact.model_version != artifact.version:
-            raise ValueError("calibrator does not belong to model artifact")
+        validate_model_calibrator(artifact, calibrator.artifact)
         features = {}
         for name in artifact.feature_names:
             feature = snapshot.features.get(name)

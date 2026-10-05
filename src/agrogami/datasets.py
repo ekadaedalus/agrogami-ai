@@ -1,8 +1,9 @@
 """Dataset identity, temporal-label and explicit local benchmark adapters."""
 import csv
-from datetime import datetime, timedelta
+import hashlib
+import json
+from datetime import timedelta
 from pathlib import Path
-from typing import Literal
 from pydantic import AwareDatetime, Field, model_validator
 from agrogami.schemas import Contract
 
@@ -70,9 +71,14 @@ class RiskDataset(Contract):
     feature_names: tuple[str, ...]
     values: tuple[tuple[float, ...], ...]
     labels: tuple[int | None, ...]
+    feature_schema_version: str = Field(default="1.0", min_length=1)
     protected_columns: tuple[str, ...] = ()
     decision_times: tuple[AwareDatetime, ...] = ()
     feature_available_times: tuple[AwareDatetime, ...] = ()
+    origination_times: tuple[AwareDatetime, ...] = ()
+    outcome_observation_end_times: tuple[AwareDatetime, ...] = ()
+    label_available_times: tuple[AwareDatetime, ...] = ()
+    available_as_of: AwareDatetime | None = None
 
     @model_validator(mode="after")
     def aligned(self) -> "RiskDataset":
@@ -95,7 +101,101 @@ class RiskDataset(Contract):
                 raise ValueError("unaligned temporal vectors")
             if any(a >= d for a, d in zip(self.feature_available_times, self.decision_times)):
                 raise ValueError("post-decision leakage")
+        for times in (self.origination_times, self.outcome_observation_end_times, self.label_available_times):
+            if times and len(times) != n:
+                raise ValueError("unaligned outcome temporal vectors")
         return self
+
+
+class DatasetSplitLineage(Contract):
+    """Private, content-bound split metadata; a fingerprint is not authenticity proof."""
+    identity: DatasetIdentity
+    feature_names: tuple[str, ...]
+    feature_schema_version: str
+    sample_ids: tuple[str, ...]
+    observed_sample_ids: tuple[str, ...]
+    sample_count: int = Field(gt=0)
+    fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    decision_times: tuple[AwareDatetime, ...] = ()
+    feature_available_times: tuple[AwareDatetime, ...] = ()
+    origination_times: tuple[AwareDatetime, ...] = ()
+    outcome_observation_end_times: tuple[AwareDatetime, ...] = ()
+    label_available_times: tuple[AwareDatetime, ...] = ()
+    available_as_of: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def membership(self) -> "DatasetSplitLineage":
+        if self.sample_count != len(self.sample_ids) or len(set(self.sample_ids)) != self.sample_count:
+            raise ValueError("split count/membership mismatch")
+        if len(set(self.observed_sample_ids)) != len(self.observed_sample_ids) or not set(self.observed_sample_ids) <= set(self.sample_ids):
+            raise ValueError("observed split membership mismatch")
+        if not self.feature_names or len(set(self.feature_names)) != len(self.feature_names):
+            raise ValueError("split feature schema mismatch")
+        for times in (self.decision_times, self.feature_available_times, self.origination_times,
+                      self.outcome_observation_end_times, self.label_available_times):
+            if times and len(times) != self.sample_count:
+                raise ValueError("split temporal membership mismatch")
+        return self
+
+
+def contract_fingerprint(value: Contract) -> str:
+    payload = json.dumps(value.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def dataset_lineage(data: RiskDataset) -> DatasetSplitLineage:
+    data = RiskDataset.model_validate(data.model_dump())
+    return DatasetSplitLineage(identity=data.identity, feature_names=data.feature_names,
+        feature_schema_version=data.feature_schema_version, sample_ids=data.sample_ids,
+        observed_sample_ids=tuple(sid for sid, label in zip(data.sample_ids, data.labels) if label is not None),
+        sample_count=len(data.sample_ids), fingerprint=contract_fingerprint(data),
+        decision_times=data.decision_times, feature_available_times=data.feature_available_times,
+        origination_times=data.origination_times, outcome_observation_end_times=data.outcome_observation_end_times,
+        label_available_times=data.label_available_times, available_as_of=data.available_as_of)
+
+
+def validate_dataset_scope(identity: DatasetIdentity, scope: str) -> None:
+    expected = {"SYNTHETIC_DEMO": {"synthetic"},
+                "PUBLIC_DATASET_BENCHMARK": {"public credit benchmark", "relational financial benchmark"},
+                "REAL_LINKED_OUTCOME_EXPERIMENT": {"real linked outcomes"}}
+    if scope not in expected or identity.scope not in expected[scope]:
+        raise ValueError("artifact and dataset scope mismatch")
+    if scope == "REAL_LINKED_OUTCOME_EXPERIMENT" and identity.target_definition != RESEARCH_TARGET:
+        raise ValueError("linked outcome requires the research target")
+
+
+def validate_temporal_scope(data: RiskDataset | DatasetSplitLineage, scope: str, *,
+                            previous: tuple[DatasetSplitLineage, ...] = ()) -> None:
+    """One stage boundary for declared scope, leakage and chronological holdouts.
+
+    Real-linked experiments require a complete 180-day observation horizon for
+    observed labels. Metadata assertions remain private research evidence,
+    not independently verified borrower outcomes.
+    """
+    # Revalidate even an immutable contract: model_copy(update=...) bypasses validation.
+    data = type(data).model_validate(data.model_dump())
+    validate_dataset_scope(data.identity, scope)
+    if scope != "REAL_LINKED_OUTCOME_EXPERIMENT":
+        return
+    vectors = (data.decision_times, data.feature_available_times, data.origination_times,
+               data.outcome_observation_end_times, data.label_available_times)
+    if data.available_as_of is None or any(len(times) != len(data.sample_ids) for times in vectors):
+        raise ValueError("real-linked stages require complete decision/origination/outcome/availability metadata")
+    observed = (set(data.observed_sample_ids) if isinstance(data, DatasetSplitLineage) else
+                {sid for sid, label in zip(data.sample_ids, data.labels) if label is not None})
+    for sid, decision, available, origin, end, label_available in zip(data.sample_ids, *vectors):
+        if available >= decision or decision > origin:
+            raise ValueError("post-decision or post-origination feature leakage")
+        if end < origin or label_available < end or label_available > data.available_as_of:
+            raise ValueError("invalid outcome or label availability chronology")
+        if sid in observed and end < origin + timedelta(days=180):
+            raise ValueError("observed research outcomes require a mature 180-day observation horizon")
+    for prior in previous:
+        validate_temporal_scope(prior, scope)
+        if (max(prior.decision_times) >= min(data.decision_times)
+                or max(prior.label_available_times) >= min(data.decision_times)
+                or prior.available_as_of >= min(data.decision_times)):
+            raise ValueError("splits must follow previously available mature outcomes chronologically")
 
 
 def load_risk_csv(path: Path, *, dataset_key: str, target_column: str, id_column: str,

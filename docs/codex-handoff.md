@@ -1,6 +1,6 @@
 # Codex Handoff
 
-The sections through "Claims That Must NOT Yet Be Made" record the first-pass baseline. First/second-pass sections below are historical records. The authoritative current completion record is the appended "Codex Final Implementation Record"; previous exclusions/handoff tasks are superseded. The original deterministic core remains unchanged; newer interfaces do not imply real-model validation.
+The sections through "Claims That Must NOT Yet Be Made" record the first-pass baseline. First/second-pass sections below are historical records. The "Codex Final Implementation Record" records local completion; the appended presentation and targeted UI polish records describe subsequent changes. Previous exclusions/handoff tasks are superseded. The original deterministic core remains unchanged; newer interfaces do not imply real-model validation.
 
 ## Repository State
 
@@ -297,3 +297,35 @@ Created (18): src/agrogami/api/project_docs.py; src/agrogami/ui/__init__.py, app
 Modified (25): AGENTS.md; README.md; pyproject.toml; .env.example; .gitignore; src/agrogami/config.py, application.py, api/app.py; scripts/dependency_report.py; tests/integration/test_backend_api.py (only reserved docs assertion); docs/PRD.md, architecture.md, data-contract.md, feature-dictionary.md, evaluation-protocol.md, responsible-ai.md, limitations.md, claims-register.md, build-status.md, codex-handoff.md, mcp.md, datasets.md, backend-api.md, dependency-compatibility.md, dependency-compatibility.json.
 
 requirements.txt was inspected and retained because it delegates to pyproject.toml. All four PowerShell helpers passed parser syntax checks. Docker executable is absent; PyYAML is also not installed, so no Docker CLI/config/build or independent YAML-parser validation is claimed. These are unavailable tools, not Python library incompatibilities.
+
+# Product Presentation Pass — 2026-10-04
+
+## Implemented presentation
+
+The visible product identity is Agrogami AI, followed by “Traceable underwriting from financial records traditional credit systems ignore.” Supporting copy describes the evidence and risk-audit workbench for thin-file credit. The Demo environment notice remains visible and explains that demonstration outputs are illustrative, not lending decisions or validated individual creditworthiness.
+
+Streamlit places API URL, Demo credential and Applicant UUID in collapsed Developer settings. Primary evidence views lead with readable status, amount, source and reasons. Technical evidence preserves UUIDs, complete JSON, source spans, SHA-256, parser/template metadata, exact machine reason codes and immutable version links. Renamed navigation is reflected in README and project documentation. Financial Profile adds summaries from existing values above unchanged 30/60/90-day tables. Assessment withheld preserves null scores and uses conditional reasons grounded in stored evidence and artifact scope.
+
+FastAPI/OpenAPI metadata and /docs use the same product identity. The docs hero prioritizes the headline and tagline, with secondary limitation copy; allowlisted escaped Markdown rendering remains intact. Smoke tools assert the new brand and demo notice. No core schemas, ledger tables, financial calculations, feature contracts, review/correction semantics, authorization boundary or health-mode value were changed.
+
+## Local runtime evidence
+
+The default `python -m scripts.verify_local_runtime` attempt found configured ports 8000/8501/8001 already occupied and stopped without claiming success. The exact existing verifier was then executed through an in-memory harness remapping those ports to operating-system-assigned unused loopback ports. API, Streamlit and Prism started against isolated temporary synthetic storage. Readiness/docs, the synthetic intake/review/correction/feature/snapshot workflow and official MCP SDK reads succeeded. Owned-process shutdown and temporary-storage cleanup passed.
+
+This confirms local software and internal protocol behavior only. No visual browser review, manually connected external MCP client, Docker build/run, public deployment, video proof, actual financial checkpoint inference or representative underwriting/calibration/fairness validation was performed in this pass. External data, artifact, operational and proof blockers remain unchanged.
+
+## Final test evidence and existing services
+
+Full default suite on Python 3.14.8 / Windows: **253 passed, 3 optional heavy tests deselected in 44.14s**. `tests/integration/test_local_product.py` now contributes **30 cases**, including readable evidence/retained audit details and a complete-zero-balance history regression. Complete balance history is not reported missing solely because a zero denominator makes the liquidity ratio unavailable. Historical counts in prior pass records above are unchanged.
+
+Executed command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp <fresh .pytest_temp directory>`, with the placeholder replaced by a new directory inside the ignored workspace `.pytest_temp` root. This avoided existing temporary/cache ACL failures. No default tests were excluded beyond the already configured optional heavy marker; no model or dataset was downloaded.
+
+A read-only OpenAPI check of the existing API on port 8000 still returned its old title. Existing user-owned services were left running. Restart the local API to serve the edited metadata and /docs code; the isolated remapped-port runtime verification exercised the updated files without interrupting those services.
+
+# Targeted UI Polish — 2026-10-05
+
+The Streamlit hero is Overview-only; other pages use a title and helper line. The compact amber demo notice explicitly styles nested text; CSS hides only the Deploy button and heading link anchors, preserving the header, toolbar and sidebar collapse/expand controls. Actions use Assess available evidence, Load assessment and Review candidate evidence. Insufficient results display Assessment withheld — Insufficient evidence. Feature labels are readable and UUID references shortened, with complete originals in collapsed Technical evidence. Empty audit/explanation views guide the next action; the evaluation UUID is in Advanced lookup. Loaded assessment selection carries into Explanation. See local-demo.md for the walkthrough.
+
+This pass changed UI presentation, existing UI assertions and synchronized docs only. Financial calculations, immutable ledger/snapshots, API/MCP contracts and role restrictions remain unchanged. Full default suite: **253 passed, 3 optional heavy tests deselected in 46.67s**, Python 3.14.8. An initial workspace temporary-directory access failure was bypassed with a fresh system temporary directory and disabled pytest cache. A separate ephemeral AppTest check passed for ten page headers, empty states, collapsed lookups and readable labels.
+
+The existing live runtime verifier passed through an in-memory harness using unused loopback ports and isolated system temporary storage, including synthetic workflow, official SDK reads and owned-process/storage cleanup. Existing services were not stopped. Installed Streamlit selector names were checked, and the declared banner colors have 8.70:1 contrast; this is not browser visual inspection. Video recording, public deployment and real-data/model validation remain unperformed. Exact test commands and evidence are in build-status.md; external blockers remain unchanged.

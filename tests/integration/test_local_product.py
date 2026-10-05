@@ -1,5 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
+from datetime import timedelta
+from decimal import Decimal
 import asyncio
 import json
 import pytest
@@ -8,12 +10,37 @@ from agrogami.api.app import create_app, Role
 from agrogami.application import ApplicationService, EvaluationRun
 from agrogami.config import Settings
 from agrogami.storage import Store
+from agrogami.schemas import Coverage, TransactionType, TransactionDirection
 from agrogami.fixtures import APPLICANT, fixture_event, fixture_sources, coverage, T0
 from agrogami.ui.api_client import APIClient, ClientError
 from agrogami.ui.samples import sample_sms, SCENARIOS
-from agrogami.ui.formatting import display
+from agrogami.ui.formatting import display, money, humanize
 from agrogami.mcp.server import create_prism, Gateway
 from agrogami.fairness.metrics import fairness_metrics
+
+
+def sidebar_input(app, label):
+    return next(field for field in app.sidebar.text_input if field.label == label)
+
+
+def technical_payloads(app):
+    """Audit details stay recoverable without being the first view of evidence."""
+    expanders = [item for item in app.expander if item.label.startswith("Technical evidence")]
+    assert expanders
+    assert all(not item.proto.expanded for item in expanders)
+
+    def objects(value):
+        yield value
+        if isinstance(value, dict):
+            for child in value.values():
+                yield from objects(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from objects(child)
+
+    return [value for item in expanders for payload in item.json
+            for value in objects(json.loads(payload.value))]
+
 
 @pytest.fixture
 def service(tmp_path):
@@ -37,7 +64,9 @@ def test_end_to_end_http_client_correction_and_immutable_history(service):
 def test_docs_ready_and_private_candidate_authorization(service):
     with TestClient(create_app(service, tokens={"review": Role.reviewer})) as client:
         docs = client.get("/docs")
-        assert docs.status_code == 200 and "Research Prototype" in docs.text
+        assert docs.status_code == 200 and "<h1>Agrogami AI</h1>" in docs.text
+        assert "Traceable underwriting from financial records traditional credit systems ignore" in docs.text
+        assert "Research Prototype" not in docs.text
         assert "Canonical" in docs.text and "Prism" in docs.text
         assert client.get("/api/docs").status_code == 200
         assert client.get("/ready").json()["optional_models"]["trocr"] is False
@@ -54,6 +83,10 @@ def test_ui_unknowns_are_not_zero():
     assert "Unavailable" in display(None)
     assert display(0) == "0"
     assert "coverage_missing" in display(None, ("coverage_missing",))
+    assert money(None) == "Unavailable"
+    assert money("0") == "Tk 0.00"
+    assert money("9007199254740993.25") == "Tk 9,007,199,254,740,993.25"
+    assert money("100.00", "USD") == "USD 100.00"
 
 def test_synthetic_document_scope_preserved_and_filenames_not_accepted(service):
     import base64
@@ -85,8 +118,11 @@ def test_ui_overview_and_invalid_identifier_no_traceback():
     from streamlit.testing.v1 import AppTest
     app = AppTest.from_file(Path("src/agrogami/ui/app.py").resolve(), default_timeout=10).run()
     assert not app.exception
-    assert "Research Prototype" in app.title[0].value
-    app.sidebar.text_input[2].set_value("invalid").run()
+    assert app.title[0].value == "Agrogami AI"
+    settings = next(item for item in app.sidebar.expander if item.label == "Developer settings")
+    assert not settings.proto.expanded
+    assert {field.label for field in settings.text_input} == {"API URL", "Demo credential", "Applicant UUID"}
+    sidebar_input(app, "Applicant UUID").set_value("invalid").run()
     assert not app.exception
     assert app.error
 
@@ -119,8 +155,8 @@ def test_sdk_diagnostics_do_not_log_untrusted_arguments(service, caplog):
     assert "secret-token" not in caplog.text
     assert "mcp_protocol" in caplog.text
 
-@pytest.mark.parametrize("page", ["Overview", "Intake / Samples", "Evidence Review", "Event Ledger", "Feature Summary",
-    "Assessment", "Explanation", "Evaluation / Fairness", "Audit / Versions", "Documentation"])
+@pytest.mark.parametrize("page", ["Overview", "Applicant Evidence", "Evidence Review", "Event Ledger", "Financial Profile",
+    "Assessment", "Explanation", "Fairness & Evaluation", "Audit Trail", "Documentation"])
 def test_ui_pages_use_backend_without_tracebacks(service, monkeypatch, page):
     from streamlit.testing.v1 import AppTest
     seed(service)
@@ -134,7 +170,7 @@ def test_ui_pages_use_backend_without_tracebacks(service, monkeypatch, page):
         app.session_state["applicant"] = str(APPLICANT)
         app.session_state["assessment_id"] = str(snapshot.assessment_id)
         app.run()
-        app.sidebar.text_input[1].set_value("review")
+        sidebar_input(app, "Demo credential").set_value("review")
         app.sidebar.radio[0].set_value(page).run()
         assert not app.exception
         assert not app.error
@@ -147,22 +183,115 @@ def test_ui_full_synthetic_review_assessment_workflow(service, monkeypatch):
             original(self, base_url, token, transport)
         monkeypatch.setattr(APIClient, "__init__", initialize)
         app = AppTest.from_file(Path("src/agrogami/ui/app.py").resolve(), default_timeout=10).run()
-        app.sidebar.text_input[1].set_value("review")
-        app.sidebar.radio[0].set_value("Intake / Samples").run()
+        sidebar_input(app, "Demo credential").set_value("review")
+        app.sidebar.radio[0].set_value("Applicant Evidence").run()
         app.button[0].click().run()
         assert not app.exception and app.session_state["job"]["candidate_id"]
+        job = app.session_state["job"]
+        assert job in technical_payloads(app)
         app.sidebar.radio[0].set_value("Evidence Review").run()
+        assert not app.exception and not app.error
+        payloads = technical_payloads(app)
+        candidate = transport.get(f"/api/v1/candidates/{job['candidate_id']}",
+                                  headers={"X-Agrogami-Token": "review"}).json()
+        source = transport.get(f"/api/v1/sources/{job['source_id']}").json()
+        events = transport.get(f"/api/v1/applicants/{source['applicant_id']}/events").json()
+        assert candidate in payloads and source in payloads and events[0] in payloads
+        assert candidate["fields"]["amount"]["location"]["span_start"] is not None
+        assert candidate["fields"]["amount"]["location"]["span_end"] is not None
+        assert len(source["source_hash"]) == 64
+        assert "Ownership not confirmed" in "\n".join(item.value for item in app.markdown)
         app.button[0].click().run()
         assert not app.exception and not app.error
-        app.sidebar.radio[0].set_value("Feature Summary").run()
+        app.sidebar.radio[0].set_value("Financial Profile").run()
         assert not app.exception and len(app.dataframe) == 3
+        metrics = {item.label: item.value for item in app.metric}
+        assert metrics == {"Verified inflow": "Tk 100.00", "Evidence coverage": "Insufficient",
+                           "Payment history": "Unavailable", "Balance history": "Unavailable"}
+        snapshots = [payload for payload in technical_payloads(app)
+                     if isinstance(payload, dict) and "window_days" in payload and "features" in payload]
+        assert {snapshot["window_days"] for snapshot in snapshots} == {30, 60, 90}
+        for table, snapshot in zip(app.dataframe, sorted(snapshots, key=lambda item: item["window_days"])):
+            assert table.value.to_dict("records") == [
+                {"Underwriting measure": humanize(name), "Value": display(value["value"]),
+                 "Evidence notes": "; ".join(humanize(reason) for reason in value.get("reasons", ())),
+                 "Contributing events": ", ".join(f"{identifier[:8]}...{identifier[-5:]}"
+                     for identifier in value.get("contributing_event_ids", ()))}
+                for name, value in snapshot["features"].items()]
         app.sidebar.radio[0].set_value("Assessment").run()
         app.button[0].click().run()
         assert not app.exception and app.session_state["assessment_id"]
+        assert "Assessment withheld — Insufficient evidence" in [item.value for item in app.subheader]
+        assert not app.metric
+        assessment = transport.get(f"/api/v1/assessments/{app.session_state['assessment_id']}").json()
+        assert assessment in technical_payloads(app)
+        assert assessment["status"] == "INSUFFICIENT_EVIDENCE"
+        assert assessment["display_score"] is None
+        assert assessment["raw_probability"] is None and assessment["calibrated_probability"] is None
+        rendered = "\n".join(item.value for item in app.markdown)
+        assert "Complete balance history is unavailable" in rendered
+        assert "Complete obligation history is unavailable" in rendered
+        assert "Representative linked borrower outcomes have not yet been established" in rendered
         app.sidebar.radio[0].set_value("Explanation").run()
         assert not app.exception
-        app.sidebar.radio[0].set_value("Audit / Versions").run()
+        app.sidebar.radio[0].set_value("Audit Trail").run()
         assert not app.exception and app.json
+
+
+def test_ui_empty_profile_preserves_unknown_inflow(service, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    original = APIClient.__init__
+    with TestClient(create_app(service)) as transport:
+        def initialize(self, base_url, token="", **kwargs):
+            original(self, base_url, token, transport)
+        monkeypatch.setattr(APIClient, "__init__", initialize)
+        app = AppTest.from_file(Path("src/agrogami/ui/app.py").resolve(), default_timeout=10).run()
+        app.sidebar.radio[0].set_value("Financial Profile").run()
+        assert not app.exception and not app.error
+        metrics = {item.label: item.value for item in app.metric}
+        assert metrics["Verified inflow"] == "Unavailable"
+        assert metrics["Evidence coverage"] == "Insufficient"
+        assert metrics["Payment history"] == metrics["Balance history"] == "Unavailable"
+        snapshots = [payload for payload in technical_payloads(app)
+                     if isinstance(payload, dict) and "window_days" in payload and "features" in payload]
+        assert len(snapshots) == 3
+        assert all(snapshot["features"]["external_inflow_total"]["value"] is None for snapshot in snapshots)
+
+
+def test_ui_withheld_assessment_does_not_call_complete_zero_balances_missing(service, monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    events = [fixture_event(f"ui-zero-closing-{day}", day=day,
+                            transaction_type=TransactionType.BALANCE_SNAPSHOT,
+                            direction=TransactionDirection.NEUTRAL, amount=None, fee=None,
+                            ownership="own", balance=Decimal("0"))
+              for day in range(1, 31)]
+    for source in fixture_sources(events):
+        service.store.save(source)
+    for event in events:
+        service.store.save(event)
+    cov = Coverage(applicant_id=APPLICANT, known_at=T0 - timedelta(seconds=1),
+                   balance_complete_days=coverage(days=30, complete=True).observed_days)
+    assessment = service.assessment(applicant_id=APPLICANT, t0=T0, coverage=cov)
+    assert assessment.status == "INSUFFICIENT_EVIDENCE"
+    assert assessment.feature_snapshot.features["balance_coverage"].value == 1
+    assert assessment.feature_snapshot.features["observed_minimum_balance"].value == 0
+    assert assessment.feature_snapshot.features["liquidity_floor"].value is None
+    original = APIClient.__init__
+    with TestClient(create_app(service)) as transport:
+        def initialize(self, base_url, token="", **kwargs):
+            original(self, base_url, token, transport)
+        monkeypatch.setattr(APIClient, "__init__", initialize)
+        app = AppTest.from_file(Path("src/agrogami/ui/app.py").resolve(), default_timeout=10)
+        app.session_state["applicant"] = str(APPLICANT)
+        app.session_state["assessment_id"] = str(assessment.assessment_id)
+        app.run()
+        app.sidebar.radio[0].set_value("Assessment").run()
+        assert not app.exception and not app.error
+        assert "Assessment withheld — Insufficient evidence" in [item.value for item in app.subheader]
+        rendered = "\n".join(item.value for item in app.markdown)
+        assert "Available balance evidence does not support a valid liquidity measure" in rendered
+        assert "Complete balance history is unavailable" not in rendered
+        assert assessment.model_dump(mode="json") in technical_payloads(app)
 
 def test_prism_streamable_http_protocol_four_tools_auth_and_fairness(service):
     seed(service)
