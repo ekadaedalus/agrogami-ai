@@ -1,0 +1,82 @@
+{
+  "title": "Synthetic recovery test",
+  "caveat": "Labels are generated from synthetic latent traits by a documented rule; these metrics show how much of that rule the pipeline recovers. They are not real repayment performance, underwriting validation, calibration validity or fairness evidence.",
+  "dataset_id": "SYNTHETIC-agrogami-population-synthetic-population-v1-seed20261016-n2000",
+  "split": "test",
+  "window_days": 90,
+  "features": [
+    "external_inflow_total",
+    "external_outflow_total",
+    "net_external_cash_flow",
+    "inflow_cv",
+    "payment_punctuality",
+    "median_payment_delay_days",
+    "active_day_share"
+  ],
+  "calibration_method": "sigmoid",
+  "selected_checkpoint": "lightgbm",
+  "selection_rule": "Pre-declared primary (LightGBM, as in the project architecture); not chosen on test metrics",
+  "hyperparameters": {
+    "logistic_c": 0.5,
+    "tree": {
+      "n_estimators": 300,
+      "learning_rate": 0.02,
+      "max_depth": 2,
+      "num_leaves": 5,
+      "min_child_samples": 60,
+      "min_child_weight": 8.0,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "reg_lambda": 1.0,
+      "random_state": 0
+    }
+  },
+  "models": {
+    "logistic": {
+      "raw": {
+        "auc": 0.7437,
+        "brier": 0.114,
+        "log_loss": 0.3753
+      },
+      "calibrated": {
+        "auc": 0.7437,
+        "brier": 0.1142,
+        "log_loss": 0.3759
+      },
+      "test_rows": 400,
+      "test_defaults": 62
+    },
+    "lightgbm": {
+      "raw": {
+        "auc": 0.7487,
+        "brier": 0.1134,
+        "log_loss": 0.3745
+      },
+      "calibrated": {
+        "auc": 0.7487,
+        "brier": 0.1133,
+        "log_loss": 0.3741
+      },
+      "test_rows": 400,
+      "test_defaults": 62
+    },
+    "xgboost": {
+      "raw": {
+        "auc": 0.7441,
+        "brier": 0.1149,
+        "log_loss": 0.3781
+      },
+      "calibrated": {
+        "auc": 0.7441,
+        "brier": 0.1147,
+        "log_loss": 0.3778
+      },
+      "test_rows": 400,
+      "test_defaults": 62
+    }
+  },
+  "reference": {
+    "latent_rule_auc": 0.8032,
+    "observable_part_of_rule_auc": 0.7787
+  }
+}

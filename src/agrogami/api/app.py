@@ -83,20 +83,10 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
             trocr = TrOCRAdapter.load(settings.trocr_checkpoint) if settings.trocr_checkpoint else None
             layout = LayoutLMv3Adapter.load(settings.layoutlmv3_checkpoint) if settings.layoutlmv3_checkpoint else None
             if settings.risk_model_path:
-                from agrogami.risk.models import LogisticRiskModel, TreeRiskModel, ValidationScope
-                from agrogami.calibration.core import Calibrator
-                model = (TreeRiskModel.load(settings.risk_model_path) if settings.risk_model_path.is_dir()
-                         else LogisticRiskModel.load(settings.risk_model_path))
-                if model.artifact.scope != ValidationScope.SYNTHETIC_DEMO and not settings.enable_real_models:
-                    raise RuntimeError("Non-synthetic local artifacts require explicit research mode")
-                calibrator = Calibrator.load(settings.calibrator_path)
-                if settings.shap_background_path:
-                    from agrogami.explainability.core import explain_tree
-                    if not isinstance(model, TreeRiskModel):
-                        raise RuntimeError("TreeSHAP background requires a supported tree model")
-                    background = json.loads(settings.shap_background_path.read_text(encoding="utf-8"))
-                    explanation_provider = lambda features: explain_tree(model, features, background=background["rows"],
-                        background_identity=background["identity"], feature_definitions=background["feature_definitions"])
+                from agrogami.risk.loading import load_risk_components
+                model, calibrator, explanation_provider = load_risk_components(
+                    settings.risk_model_path, settings.calibrator_path, settings.shap_background_path,
+                    enable_real_models=settings.enable_real_models)
             app.state.service = ApplicationService(Store(settings.database_url), settings.private_data_dir,
                 model=model, calibrator=calibrator, explanation_provider=explanation_provider,
                 deberta=deberta, trocr=trocr, layout=layout)
@@ -266,6 +256,13 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
             coverage = Coverage(applicant_id=applicant_id, known_at=scoring_time - timedelta(microseconds=1),
                                 reasons=("no_verified_coverage_supplied",))
         return service.features(applicant_id, scoring_time, coverage)
+
+    @app.get("/api/v1/applicants/{applicant_id}/feature-snapshots", response_model=list[FeatureSnapshot], dependencies=[Depends(reader)])
+    def stored_snapshots(applicant_id: UUID, service: Annotated[ApplicationService, Depends(domain)],
+                         current: Annotated[Principal, Depends(reader)]) -> list[FeatureSnapshot]:
+        """Stored snapshots keep the scoring time and attested coverage they were computed with."""
+        applicant_access(current, applicant_id, service)
+        return service.store.snapshots(applicant_id)
 
     @app.post("/api/v1/candidates/{candidate_id}/review", response_model=CanonicalEvent, dependencies=[Depends(reviewer)], status_code=201)
     def candidate_review(candidate_id: UUID, payload: CandidateReviewRequest,

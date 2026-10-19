@@ -22,3 +22,10 @@ uploads/
 .pytest_cache/
 test_*.db*
 
+
+# local MCP client configs (contain credentials)
+mcp.json
+.mcp.json
+
+# private submission audit notes
+audit/

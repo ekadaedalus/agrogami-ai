@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 
 DOCUMENTS = ("PRD.md", "architecture.md", "data-contract.md", "feature-dictionary.md",
              "datasets.md", "evaluation-protocol.md", "responsible-ai.md", "limitations.md",
-             "backend-api.md", "mcp.md", "local-demo.md", "claims-register.md", "build-status.md")
+             "backend-api.md", "mcp.md", "local-demo.md", "claims-register.md")
 
 def router(root: Path) -> APIRouter:
     routes = APIRouter()

@@ -7,10 +7,16 @@ from urllib.parse import urlencode
 import streamlit as st
 from agrogami.config import Settings
 from agrogami.assessment import AssessmentSnapshot, SnapshotStatus
-from agrogami.schemas import CanonicalEvent
+from agrogami.schemas import CanonicalEvent, ValidationStatus
+from agrogami.validation.rules import lineage_current_ids, reconcile
 from agrogami.ui.api_client import APIClient, ClientError
 from agrogami.ui.samples import SCENARIOS, sample_sms, synthetic_account
 from agrogami.ui.formatting import display, money, humanize, short_id, source_label, financial_summary
+from agrogami.synthetic.identities import DEMO_APPLICANTS, RAHIM_APPLICANT_ID
+from agrogami.synthetic.ledger import next_assessment_time
+from agrogami.synthetic.rahim import rahim_messages
+
+CUSTOM_APPLICANT = "Custom applicant UUID"
 
 PAGES = ("Overview", "Applicant Evidence", "Evidence Review", "Event Ledger", "Financial Profile",
          "Assessment", "Explanation", "Fairness & Evaluation", "Audit Trail", "Documentation")
@@ -63,6 +69,49 @@ def show_event(event: CanonicalEvent) -> None:
     technical_evidence(event.model_dump(mode="json"), "event version", codes=event.review_reason)
 
 
+def rahim_receipt_sms() -> str:
+    """Rahim's latest SYNTHETIC bKash-like customer receipt, verbatim from the demo fixture."""
+    receipts = [m for m in rahim_messages(next_assessment_time()) if m.kind == "Receipt" and not m.tag
+                and m.provider == "SYNTHETIC-bKash-like" and m.counterparty.startswith("SYN-CUST-")]
+    return receipts[-1].text
+
+
+def ledger_rows(events: list[CanonicalEvent], edge_cases_only: bool = False) -> list[dict[str, str]]:
+    """Latest event versions labelled with the core reconciliation's duplicate and reversal links."""
+    current_ids = lineage_current_ids(events)
+    current = [event for event in events if current_ids[event.event_id] == event.event_id]
+    duplicate_of = {event.event_id: event.duplicate_of_event_id for event in reconcile(current, lineage=events)}
+    accepted = [event for event in current if event.validation_status == ValidationStatus.ACCEPTED]
+    reversed_ids = {current_ids.get(event.reversal_of_event_id, event.reversal_of_event_id)
+                    for event in accepted if event.reversal_of_event_id}
+    duplicated_ids = {original for original in duplicate_of.values() if original}
+
+    def status(event: CanonicalEvent) -> str:
+        if event.validation_status != ValidationStatus.ACCEPTED:
+            return humanize(event.validation_status)
+        if duplicate_of.get(event.event_id):
+            return "Duplicate"
+        if event.event_id in reversed_ids:
+            return "Reversed"
+        if event.reversal_of_event_id:
+            return "Reversal"
+        if event.ownership == "own":
+            return "Own transfer (excluded)"
+        return "Accepted"
+    rows = []
+    for event in sorted(current, key=lambda event: (event.event_timestamp, bool(duplicate_of.get(event.event_id)))):
+        label = status(event)
+        if edge_cases_only and label == "Accepted" and event.event_id not in duplicated_ids:
+            continue
+        rows.append({"Date (UTC)": f"{event.event_timestamp.astimezone(timezone.utc):%Y-%m-%d %H:%M}",
+                     "Amount (Tk)": (f"{event.amount:,.2f}" if event.currency == "BDT" else money(event.amount, event.currency))
+                                    if event.amount is not None else "Unavailable",
+                     "Direction": humanize(event.direction),
+                     "Wallet": (event.provider or "Unknown").replace("SYNTHETIC-", "Synthetic "),
+                     "Status": label})
+    return rows
+
+
 def show_assessment(result: AssessmentSnapshot) -> None:
     if result.display_score is None:
         if result.status == SnapshotStatus.INSUFFICIENT_EVIDENCE:
@@ -99,6 +148,9 @@ def show_assessment(result: AssessmentSnapshot) -> None:
     else:
         st.subheader(humanize(result.status))
         st.metric("Illustrative Project Score", display(result.display_score))
+        if result.calibrated_probability is not None and result.raw_probability is not None:
+            st.caption(f"Calibrated probability of the modelled adverse label: {result.calibrated_probability:.2%} "
+                       f"(raw model output {result.raw_probability:.2%}).")
         st.caption(f"System state: {result.status}")
     st.caption(f"Artifact scope: {humanize(result.model_validation_scope)}")
     st.caption("The project-specific 300–850 mapping is not FICO, bureau-equivalent, internationally standardized, or an approval decision. Scaling does not create calibration.")
@@ -166,18 +218,41 @@ def main() -> None:
     with st.container(key="demo_notice"):
         st.warning("**Demo environment** · Synthetic, sample, or de-identified records. Illustrative assessments are not lending decisions or validated individual creditworthiness.", icon="⚠️")
     settings = Settings()
+    choice = st.sidebar.selectbox("Demo applicant", (CUSTOM_APPLICANT, *DEMO_APPLICANTS), key="demo_applicant")
+    previous_choice = st.session_state.get("selected_demo")
+    if previous_choice is not None and previous_choice != choice:
+        # Switching applicants must not carry another applicant's assessment or intake job forward.
+        for stale in ("assessment_id", "job"):
+            st.session_state.pop(stale, None)
+    st.session_state["selected_demo"] = choice
+    if choice in DEMO_APPLICANTS:
+        st.session_state["applicant"] = str(DEMO_APPLICANTS[choice])
     with st.sidebar.expander("Developer settings", expanded=False):
         api_url = st.text_input("API URL", settings.api_url) if settings.local_demo_mode else settings.api_url
         token = st.text_input("Demo credential", type="password")
         applicant_text = st.text_input("Applicant UUID", st.session_state.setdefault("applicant", str(uuid4())))
     try:
         client = APIClient(api_url, token)
-        applicant = UUID(applicant_text)
+        applicant = DEMO_APPLICANTS[choice] if choice in DEMO_APPLICANTS else UUID(applicant_text)
+
+        def latest_stored_assessment() -> None:
+            """Demo applicants open on their most recent stored assessment."""
+            if choice in DEMO_APPLICANTS and not st.session_state.get("assessment_id"):
+                history = client.request("GET", f"/api/v1/applicants/{applicant}/assessments")
+                if history:
+                    st.session_state["assessment_id"] = history[-1]["assessment_id"]
         if page == "Overview":
             st.write("An explainable underwriting evidence and risk-audit workbench for thin-file credit.")
             st.write("Evidence → Candidates → Validation & Reconciliation → Canonical Ledger → Features → Risk → Calibration → Explanation → Fairness → Immutable Assessment")
             st.write("Start in Applicant Evidence, corroborate facts in Evidence Review, then inspect the Financial Profile and Assessment. Every correction preserves its original evidence.")
-            st.info("Model adapter available; trained Agrogami checkpoint not installed by default. No representative linked borrower outcomes have been evaluated.")
+            try:
+                readiness = client.request("GET", "/ready")
+            except ClientError:
+                readiness = None
+            if readiness and readiness.get("optional_models", {}).get("risk"):
+                st.info("Calibrated LightGBM model active (SYNTHETIC_DEMO scope). No representative linked borrower outcomes have been evaluated.")
+            else:
+                st.info("Model adapter available; trained Agrogami checkpoint not installed by default. No representative linked borrower outcomes have been evaluated.")
             if st.button("Check backend readiness"):
                 readiness = client.request("GET", "/ready")
                 st.write(f"Backend status: {humanize(readiness['status'])}")
@@ -185,7 +260,10 @@ def main() -> None:
         elif page == "Applicant Evidence":
             scope = st.selectbox("Evidence scope", ["SYNTHETIC", "REAL/DE-IDENTIFIED"])
             scenario = st.selectbox("Synthetic scenario", list(SCENARIOS))
-            text = st.text_area("SMS evidence", sample_sms(scenario) if scope == "SYNTHETIC" else "", key=f"sms-{scope}-{scenario}")
+            rahim = applicant == RAHIM_APPLICANT_ID and scenario == "External inflow"
+            prefill = rahim_receipt_sms() if rahim else sample_sms(scenario)
+            text = st.text_area("SMS evidence", prefill if scope == "SYNTHETIC" else "",
+                                key=f"sms-{scope}-{scenario}" + ("-rahim" if rahim else ""))
             provider = st.text_input("Provider/template", "SYNTHETIC-bKash-like" if scope == "SYNTHETIC" else "unknown")
             account_text = st.text_input("Account UUID (optional)", "") if scope != "SYNTHETIC" else ""
             if st.button("Submit SMS"):
@@ -253,16 +331,28 @@ def main() -> None:
             events = client.events(applicant)
             if events:
                 st.write(f"{len(events)} stored event versions; review states remain visible.")
+                edge_only = st.checkbox("Show edge cases only", value=True)
+                st.dataframe(ledger_rows(events, edge_only), hide_index=True, width="stretch")
+                st.caption("Latest versions only. Duplicates count once, reversals cancel the linked payment, "
+                           "and own-wallet transfers are excluded from external cash flow.")
             else:
                 st.info("No event versions yet. Add and review evidence to begin the audit trail.")
             for event in events:
                 with st.container(border=True):
                     show_event(event)
         elif page == "Financial Profile":
-            now = datetime.now(timezone.utc)
-            features = client.request("GET", f"/api/v1/applicants/{applicant}/features?" + urlencode({"scoring_time": now.isoformat()}))
+            stored = client.request("GET", f"/api/v1/applicants/{applicant}/feature-snapshots")
+            latest = max((snapshot["scoring_time"] for snapshot in stored), default=None)
+            chosen = {str(snapshot["window_days"]): snapshot for snapshot in stored if snapshot["scoring_time"] == latest}
+            if set(chosen) == {"30", "60", "90"}:
+                st.caption(f"Stored feature snapshots as of {latest}, with the coverage attested when they were computed.")
+                features = chosen
+            else:
+                now = datetime.now(timezone.utc)
+                features = client.request("GET", f"/api/v1/applicants/{applicant}/features?" + urlencode({"scoring_time": now.isoformat()}))
             show_financial_profile(features)
         elif page == "Assessment":
+            latest_stored_assessment()
             if st.button("Assess available evidence"):
                 now = datetime.now(timezone.utc)
                 result = client.request("POST", "/api/v1/assessments", {"applicant_id": str(applicant),
@@ -276,6 +366,7 @@ def main() -> None:
                 st.session_state["assessment_id"] = str(result.assessment_id)
                 show_assessment(result)
         elif page == "Explanation":
+            latest_stored_assessment()
             prompt = st.empty()
             with st.expander("Load assessment", expanded=False):
                 identifier = st.text_input("Assessment UUID", st.session_state.get("assessment_id", ""))
@@ -287,6 +378,15 @@ def main() -> None:
                     st.write(reason["description"])
                 if result["tree_shap"] is None:
                     st.info("No supported precomputed TreeSHAP explanation is available.")
+                else:
+                    shap = result["tree_shap"]
+                    st.subheader("TreeSHAP reason codes")
+                    ranked = sorted(shap["contributions"].items(), key=lambda item: -abs(item[1]))
+                    st.dataframe([{"Model input": humanize(name), "Contribution to raw log-odds": round(value, 4),
+                                   "Direction": ("Raises modelled risk" if value > 0 else
+                                                 "Lowers modelled risk" if value < 0 else "No effect")}
+                                  for name, value in ranked], hide_index=True, width="stretch")
+                    st.caption(f"Base value {shap['base_value']:.4f} over background {shap['background_identity']}.")
                 technical_evidence(result, "explanation", codes=tuple(reason["code"] for reason in result["reasons"]))
                 st.caption("SHAP is association, not causality, legal adverse-action compliance, or calibrated probability contribution.")
             else:

@@ -26,6 +26,7 @@ The server provides the local evidence and risk-audit workflow. Assessment outpu
 | POST /api/v1/events/{event_id}/review | Reviewer/admin; typed changes/reason/demo-safe alias; append correction |
 | POST /api/v1/candidates/{candidate_id}/review | Reviewer/admin; explicit CanonicalEvent/reason/alias; deterministic validation and immutable acceptance audit |
 | GET /api/v1/applicants/{applicant_id}/features | Viewer; aware scoring_time; optional coverage_json attestation; all three core windows |
+| GET /api/v1/applicants/{applicant_id}/feature-snapshots | Viewer; stored FeatureSnapshots as computed (scoring time and attested coverage preserved); read-only |
 | POST /api/v1/assessments | Reviewer/admin; applicant/time/coverage/window and optional predecessor |
 | GET /api/v1/assessments/{assessment_id} | Viewer; complete immutable snapshot and limitations |
 | GET /api/v1/applicants/{applicant_id}/assessments | Viewer; assessment history including automatic unscored correction snapshots |

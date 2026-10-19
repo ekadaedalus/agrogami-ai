@@ -48,6 +48,12 @@ Coverage is a caller-attested contract: applicant, known_at, complete observed/b
 
 ProtectedAuditAttributes is separately persisted with applicant, attributes and consent reference. It has no baseline feature input path. Assessment stores only applicant, scoring time and evidence status. No score, model result or protected attribute is embedded in it.
 
+## Own-wallet registration and balance continuity at SMS intake
+
+AccountRegistration (backend journal kind `account_registration`) records an applicant's attested complete set of own wallets: account ID, provider and the wallet alias as it appears in counterparty fields, with reason and reviewer alias. Later registrations supersede earlier ones. With a registration, SMS intake on a registered account sets ownership `own` when the counterparty is a registered own wallet and `external` for any other named counterparty; unregistered accounts or messages without a counterparty keep `unknown` and route to review exactly as before. Intake now also stores the parsed counterparty on the event.
+
+When an SMS reports a balance, intake compares it with the stored current same-applicant/account/provider/currency neighbours (synthetic-provider-v1 convention: `after = before + amount - fee` for inflows, `before - amount - fee` for outflows). A proven break adds BALANCE_INCONSISTENCY and NEEDS_REVIEW; unknown directions (for example an unlinked reversal), same-instant ambiguity, missing neighbours and same-TrxID copies are unverifiable and never flagged or imputed. Corrections are not re-checked; out-of-order arrivals check both predecessor and successor but flag only the arriving message.
+
 ## Local presentation and inspection contracts
 
 DocumentRequest adds synthetic: bool=false; intake persists this explicit marker and accepts no upload filename/path. GET /api/v1/candidates/{id} requires reviewer/admin and intentionally returns original field candidates/provenance, never source object paths. APIClient validates typed jobs/candidates/events/snapshots; other JSON views preserve the backend contract without financial transformations. Unsupported input and absent checkpoints remain review/blocker states.

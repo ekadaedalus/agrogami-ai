@@ -1,6 +1,6 @@
 # Build status — local workbench completion
 
-Starting checkpoint independently verified: Python 3.14.8 / Windows, **223 passed, 3 optional heavy tests deselected**. Previous local-completion suite: **251 passed, 3 deselected**. Historical pre-remediation suite, 2026-10-05: **253 passed, 3 deselected**. **Current (final freeze pass): 460 passed, 3 deselected** — see the final freeze section below. Original financial schemas/storage/reconciliation/features/fixtures were preserved. The original 107 foundation cases remain in the full green suite. No large models/datasets were downloaded.
+Starting checkpoint independently verified: Python 3.14.8 / Windows, **223 passed, 3 optional heavy tests deselected**. Previous local-completion suite: **251 passed, 3 deselected**. Historical pre-remediation suite, 2026-10-05: **253 passed, 3 deselected**. Final freeze pass, 2026-10-05: 460 passed, 3 deselected. **Current, 2026-10-20: 477 passed, 3 deselected**. See the scored synthetic demo pass section below. Original financial schemas/storage/reconciliation/features/fixtures were preserved. The original 107 foundation cases remain in the full green suite. No large models/datasets were downloaded.
 
 ## Implemented and tested
 
@@ -44,7 +44,7 @@ Navigation follow-up, 2026-10-05: removed the toolbar-hiding selectors; only Dep
 
 ## Final remediation, verification and freeze pass — 2026-10-05
 
-Current release version **0.2.0** (pyproject, `agrogami.__version__`, FastAPI `/health` and OpenAPI metadata; enforced by tests/test_version_consistency.py). The `.venv` editable-install dist-info still reports 0.1.0 because setuptools is absent from the environment and refreshing it would require a network build; rerun `pip install -e ".[test,local,trees,fairness]"` to update it. Runtime and API values do not read that metadata.
+Current release version **0.3.0** (pyproject, `agrogami.__version__`, FastAPI `/health` and OpenAPI metadata; enforced by tests/test_version_consistency.py). The `.venv` editable-install dist-info still reports 0.1.0 because setuptools is absent from the environment and refreshing it would require a network build; rerun `pip install -e ".[test,local,trees,fairness]"` to update it. Runtime and API values do not read that metadata.
 
 Remediation from the preceding pass (committed as `fix: audit auth`) was preserved. This pass changed only: finite TreeSHAP validation (`explain_tree` rejects a nonfinite native target, base value, contribution or additivity error; `TreeExplanation` uses finite floats, so creation, persisted JSON reload and API/MCP response models reject NaN/±Infinity; valid explanations are unchanged), version synchronization, pytest default options (repository-local `.pytest_temp/default` basetemp and disabled cache plugin, mirroring scripts/run_tests.ps1), `constraints-tested.txt` and documentation.
 
@@ -56,7 +56,7 @@ Live runtime: `python -m scripts.verify_local_runtime --api-port 0 --ui-port 0 -
 
 Secret/privacy scan: no committed credential (Git history included for the legacy demo token names); examples hold placeholders, `${input:...}` prompts or synthetic test values; the runtime verifier generates per-run UUID credentials. `.env`, `.vscode/mcp.json`, `.streamlit/secrets.toml`, private_data, uploads, model_cache, `*.db`/`*.sqlite*` and `.pytest_temp` are Git-ignored and excluded from the Docker context; the Dockerfile copies only pyproject, README, src and docs. No private absolute Windows path appears in tracked content.
 
-Docker: executable not installed on this host — IMPLEMENTED, NOT runtime verified. External MCP clients: no external Codex/Claude/Antigravity invocation is recorded in this repository, so none is claimed.
+Docker: executable not installed on this host — IMPLEMENTED, NOT runtime verified. External MCP clients: none was recorded at this pass; Codex and Claude Code invocations were recorded later, on 2026-10-19, in docs/evidence/mcp-invocations.md.
 
 The historical Temp audit directory could not be removed because of Windows ACL restrictions (the stale repository `.pytest_cache` has the same restriction and is ignored). All permanent regression assets have been internalized into the repository and no source/test/runtime dependency remains on that Temp location.
 
@@ -70,11 +70,11 @@ Local demo mode (`AGROGAMI_LOCAL_DEMO_MODE=true`) remains an explicit localhost 
 
 ## External blockers and remaining human actions
 
-Real provider templates, consented financial annotations, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints and mature linked repayment outcomes remain absent. Real predictive/calibration/fairness/latency claims remain blocked. Manual external Codex/Claude/Antigravity MCP reuse, final UI review, Docker-capable validation, production operations/security, explicitly authorized public deployment, video recording and proof links remain human/external tasks. No fake result/URL/proof was created.
+Real provider templates, consented financial annotations, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints and mature linked repayment outcomes remain absent. Real predictive/calibration/fairness/latency claims remain blocked. Final UI review, Docker-capable validation, production operations/security, explicitly authorized public deployment, video recording and proof links remain human/external tasks. No fake result/URL/proof was created.
 
 ## ANTIGRAVITY HANDOFF
 
-Historical heading retained for foundation contract compatibility. The user superseded the previous coding-agent handoff: Codex completed the feasible local product pass. There is no pending UI/docs/Prism implementation handoff. Read docs/codex-handoff.md → Codex Final Implementation Record for current status. Next stage is human review and operational/data/proof work, not regenerating the core.
+Historical heading retained only because a foundation test requires it. Google Antigravity was never used on this project and this handoff never happened: Codex completed the feasible local product pass. There is no pending UI/docs/Prism implementation handoff. Read docs/codex-handoff.md → Codex Final Implementation Record for current status. Next stage is human review and operational/data/proof work, not regenerating the core.
 
 ## Exact run commands
 
@@ -88,3 +88,24 @@ Historical heading retained for foundation contract compatibility. The user supe
 ```
 
 Prism requires AGROGAMI_MCP_ENABLED=true and configured secret credentials. README contains clean-install/environment/Docker commands.
+
+## Scored synthetic demo pass — 2026-10-16
+
+Added:
+- a seeded SYNTHETIC population generator (`src/agrogami/synthetic/`, `scripts/generate_population.py`);
+- the feature-snapshot → RiskDataset bridge with a seeded stratified split (`src/agrogami/risk/bridge.py`);
+- configurable tree hyperparameters and LR C (`TreeHyperparameters`, `train_risk.py` flags);
+- the synthetic training, calibration and evaluation pipeline (`scripts/train_synthetic_risk.py`);
+- own-wallet registration and per-account balance continuity at SMS intake;
+- a read-only stored-snapshot endpoint;
+- the Rahim fixture, the one-command rebuild (`scripts/build_demo.py`), the perturbation check (`scripts/perturbation_check.py`), the demo API launcher (`scripts/run_demo_api.ps1`) and the UI demo-applicant selector.
+
+Verified:
+- **Test suite:** **477 passed, 3 deselected** (`python -m pytest -q`). The 460 earlier cases pass without modification.
+- **Rebuild:** `python -m scripts.build_demo` (about 19 minutes on 12 cores) ran twice from scratch with identical output hashes and content digest.
+- **Synthetic recovery test:** on the 400-row test split, calibrated AUC is 0.744 (LR), 0.749 (LightGBM, selected) and 0.744 (XGBoost), against a generating-rule reference of 0.803.
+- **Rahim (`600bbe3a-8b59-52ab-99d1-dc12d222b438`):** ILLUSTRATIVE, with calibrated probability 0.0518, display score 641 and TreeSHAP contributions.
+- **Abstention applicant `fcba6da1-…`:** recreated in the demo ledger and still INSUFFICIENT_EVIDENCE.
+- **Perturbation check:** BALANCE_INCONSISTENCY, assessment NEEDS_REVIEW, and the score is withheld.
+
+All of these are synthetic software demonstrations, not real predictive, calibration or fairness evidence. `private_data/agrogami.db`, earlier `synthetic_demo` scenarios and `.env` were not modified.

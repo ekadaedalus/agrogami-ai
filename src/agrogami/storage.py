@@ -129,6 +129,13 @@ class Store:
             rows = session.scalars(select(EventRow).where(EventRow.applicant_id == str(applicant_id))).all()
             return [CanonicalEvent.model_validate_json(row.payload) for row in rows]
 
+    def snapshots(self, applicant_id: UUID) -> list[FeatureSnapshot]:
+        """Read-only stored feature snapshots, ordered by scoring time then window."""
+        with Session(self.engine) as session:
+            rows = session.scalars(select(SnapshotRow).where(SnapshotRow.applicant_id == str(applicant_id))).all()
+            records = [FeatureSnapshot.model_validate_json(row.payload) for row in rows]
+        return sorted(records, key=lambda s: (s.scoring_time, s.window_days, str(s.snapshot_id)))
+
     def corrections(self, event_id: UUID) -> list[Correction]:
         with Session(self.engine) as session:
             rows = session.scalars(select(CorrectionRow).where(

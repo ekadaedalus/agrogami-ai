@@ -1,0 +1,58 @@
+{
+  "generator_version": "synthetic-population-v1",
+  "seed": 20261016,
+  "n": 2000,
+  "history_days": 92,
+  "label_rule": {
+    "intercept": -3.5,
+    "weights": {
+      "instability": 1.2,
+      "low_margin": 1.0,
+      "indiscipline": 0.9,
+      "hidden_shock": 2.0,
+      "hidden_burden": 0.6
+    },
+    "label_noise": 0.05,
+    "unobserved_drivers": [
+      "hidden_shock",
+      "hidden_burden"
+    ]
+  },
+  "default_rate": 0.155,
+  "latent_default_rate": 0.1165,
+  "mean_latent_default_probability": 0.1104,
+  "labels_flipped_by_noise": 85,
+  "sms_messages": 362018,
+  "events_not_accepted": 0,
+  "bridge": {
+    "window_days": 90,
+    "features": [
+      "external_inflow_total",
+      "external_outflow_total",
+      "net_external_cash_flow",
+      "inflow_cv",
+      "payment_punctuality",
+      "median_payment_delay_days",
+      "active_day_share"
+    ],
+    "rows": 2000,
+    "excluded": 0
+  },
+  "splits": {
+    "train": {
+      "rows": 1200,
+      "defaults": 186,
+      "fingerprint": "77d9689b5ddcc90f79756f79dc5ce15948d279bc3da9c59ded25520b24402bc8"
+    },
+    "calibration": {
+      "rows": 400,
+      "defaults": 62,
+      "fingerprint": "63d4270281fe77af256f40fb6a79f6cd8721531aeab7b581aeae0d4fb37c86a5"
+    },
+    "test": {
+      "rows": 400,
+      "defaults": 62,
+      "fingerprint": "5c6ea8832438fd4ddd28ec6a3097fa238f4f4c6c17c068fc3da7722f50505925"
+    }
+  }
+}

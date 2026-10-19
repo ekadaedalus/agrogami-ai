@@ -213,7 +213,7 @@ Risk settings: AGROGAMI_RISK_MODEL_PATH and AGROGAMI_CALIBRATOR_PATH together; n
 
 Scripts: train_extractor.py/evaluate_extractor.py for explicit local annotations/checkpoints or prediction pairs; train_risk.py/evaluate_risk.py for disjoint scoped splits and optional separate audit groups. `evaluate_risk.py --persist` appends actual local report metadata for evaluation routes. Use --help for exact required flags. These scripts are not evidence of real financial training or evaluation.
 
-## Exact next Antigravity tasks
+## Planned next tasks (completed by Codex; Antigravity was never used)
 
 1. Read AGENTS.md, this second-pass section, architecture.md, data-contract.md, feature-dictionary.md, datasets.md, backend-api.md, claims-register.md and build-status.md.
 2. Build Streamlit review/assessment flows against the backend. Make scope, nulls, evidence coverage, review state and project-score limitations visible; never substitute invented scores/checkpoints. Preserve immutable review/assessment history and demo authorization.
@@ -247,7 +247,7 @@ Streamlit is implemented at src/agrogami/ui/app.py with ten coherent pages, type
 
 Agrogami Prism uses official MCP SDK 1.30.0, stateless Streamable HTTP /mcp, separate local process/shared database. Exactly four tools: get_evidence_ledger, get_assessment_snapshot, get_explanation_factors, get_fairness_audit. Tools read existing application/ledger/journal records, never write or compute model values. Bearer credentials reuse demo viewer/reviewer/admin; dedicated MCP token grants viewer only; fairness requires reviewer/admin. Missing/invalid HTTP credentials are 401. Local DNS-rebinding protection remains enabled. Outputs omit raw source bytes/account IDs/counterparties/transaction references/training sample IDs/row-level protected records. SDK log diagnostics are redacted to structured severity.
 
-Actual four-tool HTTP protocol, registration/authentication/restrictions/unknown records/minimization/read-only behavior passed offline tests. Live official SDK initialization/list/reads also passed. External Codex/Claude/Antigravity invocation is separately PLANNED, not inferred from these tests. CloudCamp was not contacted and receives no product data.
+Actual four-tool HTTP protocol, registration/authentication/restrictions/unknown records/minimization/read-only behavior passed offline tests. Live official SDK initialization/list/reads also passed. External Codex and Claude Code invocations are recorded separately in docs/evidence/mcp-invocations.md, not inferred from these tests. CloudCamp was read by Claude Code on 2026-10-19 for competition guidance only and receives no product data.
 
 ## Integration
 

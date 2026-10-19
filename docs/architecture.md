@@ -1,5 +1,9 @@
 # Architecture
 
+![Agrogami AI evidence-to-assessment architecture](architecture-diagram.svg)
+
+Solid boxes run in the prototype. Dashed boxes are built but not active or not yet run (perception adapters, offline fairness audit).
+
 ## Second-pass backend extension
 
 The existing deterministic contracts, persistence implementation, reconciliation rules and feature engine are unchanged. The new application layer calls them; routes contain no duplicated financial arithmetic. `config.py` gained only new environment fields and validation for explicitly configured artifacts/demo authorization.

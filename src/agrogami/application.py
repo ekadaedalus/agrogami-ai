@@ -9,16 +9,17 @@ from typing import Literal, TypeVar, Callable
 from uuid import UUID, uuid4
 from sqlalchemy import String, Text, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, Field, model_validator
 from agrogami.schemas import (Contract, Source, SourceType, CanonicalEvent, CandidateExtraction,
                               TransactionType as T, TransactionDirection as D, ValidationStatus as V,
-                              Coverage, FeatureSnapshot, utcnow)
+                              ReviewReason as R, Coverage, FeatureSnapshot, utcnow)
 from agrogami.storage import Store
 from agrogami.events.intake import intake
 from agrogami.extraction.sms import parse_sms
 from agrogami.extraction.documents import preprocess, line_regions, TrOCRAdapter, LayoutLMv3Adapter
 from agrogami.extraction.local_models import DebertaAdapter
-from agrogami.validation.rules import validate_event
+from agrogami.validation.rules import validate_event, review as review_event
+from agrogami.validation.continuity import continuity_break
 from agrogami.features import build_all_windows
 from agrogami.assessment import assess, AssessmentSnapshot, SnapshotStatus
 from agrogami.risk.models import RiskModel, ValidationScope
@@ -68,7 +69,37 @@ class CandidateAcceptance(Contract):
     created_at: AwareDatetime = Field(default_factory=utcnow)
 
 
-MODEL_KINDS = {Job: "job", AssessmentSnapshot: "assessment_snapshot", EvaluationRun: "evaluation", CandidateAcceptance: "candidate_review"}
+class OwnAccount(Contract):
+    """One wallet the applicant attests is their own, as its identifier appears in counterparty fields."""
+    account_id: UUID
+    provider: str = Field(min_length=1, max_length=80)
+    wallet_alias: str = Field(pattern=r"^[A-Za-z0-9_-]+$", max_length=80)
+
+
+class AccountRegistration(Contract):
+    """Attested complete set of own wallets; later registrations supersede earlier ones.
+
+    With a registration, an SMS on a registered account whose counterparty is a registered own
+    wallet is an own transfer, and any other named counterparty is external. Unregistered
+    accounts and messages without a counterparty keep ownership unknown for review.
+    """
+    registration_id: UUID = Field(default_factory=uuid4)
+    applicant_id: UUID
+    accounts: tuple[OwnAccount, ...] = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    reviewer_alias: str = Field(pattern=r"^reviewer-[A-Za-z0-9_-]+$")
+    created_at: AwareDatetime = Field(default_factory=utcnow)
+
+    @model_validator(mode="after")
+    def unique_accounts(self) -> "AccountRegistration":
+        if (len({a.account_id for a in self.accounts}) != len(self.accounts)
+                or len({a.wallet_alias for a in self.accounts}) != len(self.accounts)):
+            raise ValueError("own accounts and wallet aliases must be unique")
+        return self
+
+
+MODEL_KINDS = {Job: "job", AssessmentSnapshot: "assessment_snapshot", EvaluationRun: "evaluation",
+               CandidateAcceptance: "candidate_review", AccountRegistration: "account_registration"}
 B = TypeVar("B", bound=Contract)
 
 
@@ -84,7 +115,8 @@ class BackendRepository:
             return
         kind = MODEL_KINDS[type(obj)]
         key = (obj.job_id if isinstance(obj, Job) else obj.assessment_id if isinstance(obj, AssessmentSnapshot)
-               else obj.candidate_id if isinstance(obj, CandidateAcceptance) else obj.run_id)
+               else obj.candidate_id if isinstance(obj, CandidateAcceptance)
+               else obj.registration_id if isinstance(obj, AccountRegistration) else obj.run_id)
         session.add(BackendRecord(kind=kind, id=str(key), payload=obj.model_dump_json()))
         session.flush()
 
@@ -100,6 +132,13 @@ class BackendRepository:
         return sorted((record for record in records if record.applicant_id == applicant_id),
                       key=lambda record: (record.created_at, str(record.assessment_id)))
 
+    def registrations(self, applicant_id: UUID) -> list[AccountRegistration]:
+        with Session(self.core.engine) as session:
+            rows = session.scalars(select(BackendRecord).where(BackendRecord.kind == "account_registration")).all()
+            records = [AccountRegistration.model_validate_json(row.payload) for row in rows]
+        return sorted((record for record in records if record.applicant_id == applicant_id),
+                      key=lambda record: (record.created_at, str(record.registration_id)))
+
 
 class ApplicationService:
     def __init__(self, store: Store, private_dir: Path, *, model: RiskModel | None = None,
@@ -112,6 +151,23 @@ class ApplicationService:
         self.model, self.calibrator = model, calibrator
         self.explanation_provider = explanation_provider
         self.deberta, self.trocr, self.layout = deberta, trocr, layout
+
+    def register_accounts(self, applicant_id: UUID, accounts: tuple[OwnAccount, ...], reason: str,
+                          reviewer_alias: str) -> AccountRegistration:
+        registration = AccountRegistration(applicant_id=applicant_id, accounts=accounts, reason=reason,
+                                           reviewer_alias=reviewer_alias)
+        self.records.save(registration)
+        return registration
+
+    def ownership(self, applicant_id: UUID, account_id: UUID | None, provider: str, counterparty: str | None) -> str:
+        """Resolve ownership only from an attested registration; otherwise it stays unknown."""
+        registrations = self.records.registrations(applicant_id)
+        if not registrations or account_id is None or counterparty is None:
+            return "unknown"
+        accounts = registrations[-1].accounts
+        if not any(a.account_id == account_id and a.provider == provider for a in accounts):
+            return "unknown"
+        return "own" if counterparty in {a.wallet_alias for a in accounts} else "external"
 
     def sms_intake(self, *, applicant_id: UUID, account_id: UUID | None, text: str, provider: str) -> Job:
         synthetic = text.startswith("SYNTHETIC:")
@@ -133,8 +189,14 @@ class ApplicationService:
                 transaction_type=kind, direction=direction[kind], amount=fields["amount"].normalized_value,
                 fee=fields["fee"].normalized_value, balance=fields["balance"].normalized_value if "balance" in fields else None,
                 provider=provider, transaction_reference=fields["transaction_reference"].normalized_value,
-                source_provenance=fields["amount"].location, ownership="unknown",
+                counterparty=fields["counterparty"].normalized_value if "counterparty" in fields else None,
+                source_provenance=fields["amount"].location,
+                ownership=self.ownership(applicant_id, account_id, provider,
+                                         fields["counterparty"].normalized_value if "counterparty" in fields else None),
                 extractor_name="deterministic-synthetic-sms", extractor_version="1.0"))
+            # A reported balance that cannot follow its stored same-account neighbour is review evidence.
+            if event.balance is not None and continuity_break(event, self.store.events(applicant_id)):
+                event = review_event(event, R.BALANCE_INCONSISTENCY)
         job = Job(source_id=source.source_id, candidate_id=parsed.candidate.candidate_id,
                   candidate_ids=tuple(c.candidate_id for c in candidates),
                   event_id=event.event_id if event else None,

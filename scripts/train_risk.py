@@ -3,7 +3,7 @@ import argparse
 import json
 from pathlib import Path
 from agrogami.datasets import RiskDataset, dataset_lineage, validate_temporal_scope
-from agrogami.risk.models import LogisticRiskModel, TreeRiskModel, ValidationScope
+from agrogami.risk.models import LogisticRiskModel, TreeRiskModel, TreeHyperparameters, ValidationScope
 from agrogami.calibration.core import Calibrator, ExperimentManifest
 
 if __name__ == "__main__":
@@ -15,7 +15,13 @@ if __name__ == "__main__":
     parser.add_argument("--version", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--method", choices=["sigmoid", "isotonic"], default="sigmoid")
+    parser.add_argument("--lr-c", type=float, default=1.0, help="Logistic inverse L2 regularization strength")
+    defaults = TreeHyperparameters()
+    for name, field in TreeHyperparameters.model_fields.items():
+        parser.add_argument("--" + name.replace("_", "-"), type=type(field.default), default=getattr(defaults, name),
+                            help=f"Tree hyperparameter (default sized for ~2,000 rows: {getattr(defaults, name)})")
     args = parser.parse_args()
+    hyperparameters = TreeHyperparameters(**{name: getattr(args, name) for name in TreeHyperparameters.model_fields})
     training = RiskDataset.model_validate_json(args.training.read_text(encoding="utf-8"))
     calibration = RiskDataset.model_validate_json(args.calibration.read_text(encoding="utf-8"))
     if (training.feature_names != calibration.feature_names or training.identity != calibration.identity
@@ -26,8 +32,9 @@ if __name__ == "__main__":
     scope = ValidationScope(args.scope)
     validate_temporal_scope(training, scope)
     validate_temporal_scope(calibration, scope, previous=(dataset_lineage(training),))
-    model = (LogisticRiskModel.fit(training, scope=scope, version=args.version) if args.algorithm == "logistic"
-             else TreeRiskModel.fit(training, algorithm=args.algorithm, scope=scope, version=args.version))
+    model = (LogisticRiskModel.fit(training, scope=scope, version=args.version, c=args.lr_c) if args.algorithm == "logistic"
+             else TreeRiskModel.fit(training, algorithm=args.algorithm, scope=scope, version=args.version,
+                                    hyperparameters=hyperparameters))
     selected = [(sid, row, y) for sid, row, y in zip(calibration.sample_ids, calibration.values, calibration.labels) if y is not None]
     raw = [model.predict(dict(zip(calibration.feature_names, row))) for _, row, _ in selected]
     fitted = Calibrator.fit(raw, [y for _, _, y in selected], [sid for sid, _, _ in selected], model=model.artifact,

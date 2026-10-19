@@ -1,0 +1,174 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1110 800" width="1110" height="800" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">Agrogami AI architecture</title>
+  <desc id="d">Evidence-to-assessment pipeline: synthetic mobile-money SMS intake, template parsing, validation and reconciliation into an immutable event ledger, deterministic 30/60/90-day features, a calibrated risk model, TreeSHAP reasons and immutable assessment snapshots, served through FastAPI, Streamlit and the read-only Agrogami Prism MCP server.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .box{fill:#f8fafc;stroke:#334155;stroke-width:1.4}
+      .ev{fill:#ecfdf5;stroke:#059669;stroke-width:1.8}
+      .ml{fill:#eff6ff;stroke:#2563eb;stroke-width:1.4}
+      .mcp{fill:#f5f3ff;stroke:#7c3aed;stroke-width:1.4}
+      .rv{fill:#fffbeb;stroke:#d97706;stroke-width:1.4}
+      .off{fill:#ffffff;stroke:#94a3b8;stroke-width:1.4;stroke-dasharray:6 4}
+      .h{font-size:13.5px;font-weight:700;fill:#0f172a;text-anchor:middle}
+      .s{font-size:11px;fill:#475569;text-anchor:middle}
+      .hg{font-size:13.5px;font-weight:700;fill:#64748b;text-anchor:middle}
+      .n{font-size:11px;fill:#64748b}
+      .lbl{font-size:10.5px;fill:#334155;font-style:italic}
+      .ln{stroke:#475569;stroke-width:1.5;fill:none;marker-end:url(#a)}
+      .lg{stroke:#94a3b8;stroke-width:1.5;fill:none;stroke-dasharray:5 4;marker-end:url(#ag)}
+      .lane{font-size:11px;font-weight:700;fill:#94a3b8;letter-spacing:.08em}
+    </style>
+  </defs>
+
+  <rect width="1110" height="800" fill="#ffffff"/>
+
+  <text x="30" y="44" font-size="22" font-weight="700" fill="#0f172a">Agrogami AI — evidence-to-assessment architecture</text>
+  <text x="30" y="68" font-size="12.5" fill="#475569">Local research prototype · synthetic data only · no generative model at runtime · a loan officer makes the decision</text>
+
+  <text x="30" y="94" class="lane">1 · EVIDENCE BOUNDARY</text>
+
+  <!-- Row A: inputs to ledger -->
+  <rect class="box" x="30" y="104" width="170" height="56" rx="8"/>
+  <text class="h" x="115" y="127">Mobile-money SMS</text>
+  <text class="s" x="115" y="145">synthetic bKash/Nagad-like</text>
+
+  <rect class="off" x="30" y="176" width="170" height="56" rx="8"/>
+  <text class="hg" x="115" y="199">Document images</text>
+  <text class="s" x="115" y="217">checked, preprocessed; no events</text>
+  <text class="n" x="30" y="252">TrOCR · LayoutLMv3 · DeBERTa-v3-small:</text>
+  <text class="n" x="30" y="266">integration built, training next</text>
+
+  <rect class="box" x="250" y="120" width="170" height="64" rx="8"/>
+  <text class="h" x="335" y="143">Intake</text>
+  <text class="s" x="335" y="161">SHA-256 hash, UUIDs</text>
+  <text class="s" x="335" y="175">synthetic / real flag</text>
+
+  <rect class="box" x="470" y="120" width="170" height="64" rx="8"/>
+  <text class="h" x="555" y="143">Template parser</text>
+  <text class="s" x="555" y="161">deterministic-synthetic-sms v1.0</text>
+  <text class="s" x="555" y="175">exact field spans</text>
+
+  <rect class="box" x="690" y="120" width="170" height="64" rx="8"/>
+  <text class="h" x="775" y="143">Validate &amp; reconcile</text>
+  <text class="s" x="775" y="161">duplicates, reversals,</text>
+  <text class="s" x="775" y="175">own wallets, balance chain</text>
+
+  <rect class="ev" x="910" y="120" width="170" height="64" rx="8"/>
+  <text class="h" x="995" y="143">Immutable event ledger</text>
+  <text class="s" x="995" y="161">SQLAlchemy, append-only</text>
+  <text class="s" x="995" y="175">accepted events only</text>
+
+  <rect class="rv" x="690" y="236" width="170" height="56" rx="8"/>
+  <text class="h" x="775" y="259">Review queue</text>
+  <text class="s" x="775" y="277">NEEDS_REVIEW · human fix</text>
+
+  <path class="ln" d="M200,132 L248,146"/>
+  <path class="lg" d="M200,204 L248,166"/>
+  <path class="ln" d="M420,152 L468,152"/>
+  <path class="ln" d="M640,152 L688,152"/>
+  <path class="ln" d="M860,152 L908,152"/>
+  <text class="lbl" x="866" y="144">accepted</text>
+  <path class="ln" d="M775,184 L775,234"/>
+  <text class="lbl" x="782" y="214">unsupported / ambiguous</text>
+  <path class="ln" d="M860,264 L940,264 L940,186"/>
+  <text class="lbl" x="868" y="282">correction appends version</text>
+
+  <text x="30" y="324" class="lane">2 · DETERMINISTIC FEATURES AND SCOPED MODEL</text>
+
+  <!-- Row B: right to left -->
+  <rect class="box" x="910" y="340" width="170" height="64" rx="8"/>
+  <text class="h" x="995" y="363">30/60/90-day features</text>
+  <text class="s" x="995" y="381">window [t0 − w, t0)</text>
+  <text class="s" x="995" y="395">missing = unknown, never 0</text>
+
+  <rect class="box" x="690" y="340" width="170" height="64" rx="8"/>
+  <text class="h" x="775" y="363">Model-ready bridge</text>
+  <text class="s" x="775" y="381">rows with nulls excluded</text>
+  <text class="s" x="775" y="395">no zero-filling</text>
+
+  <rect class="ml" x="470" y="340" width="170" height="64" rx="8"/>
+  <text class="h" x="555" y="363">Calibrated risk model</text>
+  <text class="s" x="555" y="381">LightGBM · LR · XGBoost</text>
+  <text class="s" x="555" y="395">Platt · SYNTHETIC_DEMO</text>
+
+  <rect class="ml" x="250" y="340" width="170" height="64" rx="8"/>
+  <text class="h" x="335" y="363">TreeSHAP reasons</text>
+  <text class="s" x="335" y="381">controlled reason codes</text>
+  <text class="s" x="335" y="395">linked to source events</text>
+
+  <rect class="ev" x="30" y="340" width="170" height="64" rx="8"/>
+  <text class="h" x="115" y="363">Assessment snapshot</text>
+  <text class="s" x="115" y="381">immutable, versioned</text>
+  <text class="s" x="115" y="395">score, or withheld (null)</text>
+
+  <path class="ln" d="M1025,184 L1025,338"/>
+  <text class="lbl" x="1032" y="264">as-of t0</text>
+  <path class="ln" d="M910,372 L862,372"/>
+  <path class="ln" d="M690,372 L642,372"/>
+  <text class="lbl" x="652" y="362">gate</text>
+  <path class="ln" d="M470,372 L422,372"/>
+  <path class="ln" d="M250,372 L202,372"/>
+  <text class="n" x="250" y="428">Illustrative 300–850 display score, labelled "not FICO"; insufficient or inconsistent evidence → "Assessment withheld"</text>
+
+  <text x="30" y="466" class="lane">3 · READ SURFACES</text>
+
+  <!-- Row C -->
+  <path class="ln" d="M115,404 L115,558"/>
+  <path class="ln" d="M115,500 L555,500 L555,558"/>
+  <text class="lbl" x="300" y="492">Prism reads stored records; never recomputes</text>
+
+  <rect class="box" x="30" y="560" width="170" height="64" rx="8"/>
+  <text class="h" x="115" y="583">FastAPI /api/v1</text>
+  <text class="s" x="115" y="601">role tokens, applicant grants</text>
+  <text class="s" x="115" y="615">project /docs</text>
+
+  <rect class="box" x="250" y="560" width="170" height="64" rx="8"/>
+  <text class="h" x="335" y="583">Streamlit UI</text>
+  <text class="s" x="335" y="601">10 pages via API client</text>
+  <text class="s" x="335" y="615">"Unavailable" shown plainly</text>
+
+  <rect class="mcp" x="470" y="560" width="170" height="64" rx="8"/>
+  <text class="h" x="555" y="583">Agrogami Prism MCP</text>
+  <text class="s" x="555" y="601">4 read-only tools</text>
+  <text class="s" x="555" y="615">bearer auth, minimized</text>
+
+  <rect class="mcp" x="690" y="560" width="170" height="64" rx="8"/>
+  <text class="h" x="775" y="583">External MCP clients</text>
+  <text class="s" x="775" y="601">OpenAI Codex · Claude Code</text>
+  <text class="s" x="775" y="615">Streamable HTTP</text>
+
+  <rect class="off" x="910" y="560" width="170" height="64" rx="8"/>
+  <text class="hg" x="995" y="583">Offline fairness audit</text>
+  <text class="s" x="995" y="601">protected attributes separate</text>
+  <text class="s" x="995" y="615">implemented, not yet run</text>
+
+  <rect class="box" x="250" y="664" width="170" height="56" rx="8"/>
+  <text class="h" x="335" y="687">Loan officer</text>
+  <text class="s" x="335" y="705">reviews and decides</text>
+
+  <path class="ln" d="M200,592 L248,592"/>
+  <path class="ln" d="M640,592 L688,592"/>
+  <path class="ln" d="M335,624 L335,662"/>
+
+  <rect class="off" x="690" y="664" width="390" height="56" rx="8"/>
+  <text class="hg" x="885" y="687">Dev time only: CloudCamp BD MCP → Claude Code</text>
+  <text class="s" x="885" y="705">competition guidance; no applicant data crosses this line</text>
+
+  <!-- Legend -->
+  <rect class="box" x="30" y="752" width="28" height="16" rx="3"/>
+  <text class="n" x="66" y="765">running in the prototype</text>
+  <rect class="off" x="230" y="752" width="28" height="16" rx="3"/>
+  <text class="n" x="266" y="765">built, not active or not yet run</text>
+  <rect class="ev" x="470" y="752" width="28" height="16" rx="3"/>
+  <text class="n" x="506" y="765">immutable record</text>
+  <rect class="ml" x="640" y="752" width="28" height="16" rx="3"/>
+  <text class="n" x="676" y="765">synthetic-scope model</text>
+  <rect class="mcp" x="830" y="752" width="28" height="16" rx="3"/>
+  <text class="n" x="866" y="765">MCP</text>
+</svg>

@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from agrogami.api.app import create_app, Role
 from agrogami.application import ApplicationService, EvaluationRun
+from agrogami.config import Settings
 from agrogami.assessment import AssessmentSnapshot, SnapshotStatus
 from agrogami.schemas import CanonicalEvent, Coverage, Source
 from agrogami.storage import Store
@@ -302,6 +303,7 @@ def test_typed_snapshot_cannot_claim_score_for_unknown_evidence(service):
 
 
 def test_default_api_startup_uses_config_without_loading_models(tmp_path, monkeypatch):
+    monkeypatch.setitem(Settings.model_config, "env_file", None)  # a local demo .env must not load models here
     monkeypatch.setenv("AGROGAMI_DATABASE_URL", "sqlite:///" + str(tmp_path / "startup.db"))
     monkeypatch.setenv("AGROGAMI_PRIVATE_DATA_DIR", str(tmp_path / "private"))
     monkeypatch.setenv("AGROGAMI_DEMO_TOKENS", "{}")

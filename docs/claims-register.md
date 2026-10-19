@@ -65,7 +65,7 @@ Historical second-pass default suite: **223 passed, 3 heavy checkpoint tests des
 | Updated presentation with local API/UI/Prism smoke | DEMONSTRATED_WITH_SYNTHETIC_DATA | 2026-10-04 existing verifier exercised via in-memory harness on OS-assigned unused loopback ports after default ports were occupied; official SDK reads and owned-process/storage cleanup passed; no public deployment |
 | Synthetic correction/recomputed features/immutable snapshots | DEMONSTRATED_WITH_SYNTHETIC_DATA | live smoke plus HTTP client/UI tests preserve old records and reference new event versions |
 | Docker artifacts and local run helpers | IMPLEMENTED | Dockerfile/compose/ignore/healthchecks and relative PowerShell helpers; Docker unavailable, no build/runtime proof |
-| External Codex/Claude/Antigravity MCP client reuse | PLANNED | No external client invocation is recorded in this repository; internal official SDK tests are separate evidence |
+| External Codex/Claude MCP client reuse | DEMONSTRATED_WITH_SYNTHETIC_DATA | Codex and Claude Code each called `get_evidence_ledger` over Streamable HTTP for synthetic applicants; see docs/evidence/mcp-invocations.md. Internal official SDK tests are separate evidence |
 | Public deployment/video/proof links | PLANNED | No public target/credentials/URL or video provided/performed |
 | Representative borrower risk/calibration/fairness/latency validation | BLOCKED_EXTERNAL_DEPENDENCY | No real financial checkpoints, representative linked mature outcomes or annotations |
 
@@ -81,16 +81,33 @@ Historical local-completion suite: **251 passed, 3 heavy tests deselected**, Pyt
 | Evaluation identity/lineage validation, private lineage retention, public-response minimization | TESTED | tests/test_adversarial_governance.py; tests/test_public_lineage.py |
 | Temporal leakage safeguards (shared temporal validation, mature outcomes, chronological splits, incompatible calibrators) | TESTED | tests/test_adversarial_governance.py; synthetic contracts only |
 | Finite TreeSHAP values (target, base, contributions, additivity error, persisted payload) | TESTED | Nonfinite NaN/±Infinity cases in tests/test_adversarial_governance.py; native LightGBM/XGBoost explanation tests unchanged |
-| Release version 0.2.0 consistency | TESTED | tests/test_version_consistency.py |
+| Release version 0.3.0 consistency | TESTED | tests/test_version_consistency.py |
 | Credential-free HTTP MCP configuration example (`type: http`, `/mcp`, password input) | TESTED | tests/test_config_security.py |
 | scripts/prepare_demo.py fresh SYNTHETIC scenario; earlier scenarios unchanged | TESTED | tests/test_demo_tooling.py; executed 2026-10-05 with SHA-256 before/after comparison |
 | Local FastAPI, Streamlit and authenticated Streamable HTTP Prism runtime | DEMONSTRATED_WITH_SYNTHETIC_DATA | scripts.verify_local_runtime on OS-assigned ports, 2026-10-05; official SDK reads; owned-process/storage cleanup |
 | Tested dependency snapshot | IMPLEMENTED | constraints-tested.txt: pip freeze of the tested Python 3.14.8 / Windows environment; optional constraints, not a lock |
 | Docker configuration | IMPLEMENTED | Docker not installed on the tested host; no config/build/run evidence |
-| External Codex/Claude/Antigravity MCP invocation | PLANNED | No external-client invocation evidence is recorded in this repository |
+| External Codex/Claude MCP invocation | DEMONSTRATED_WITH_SYNTHETIC_DATA | Recorded in docs/evidence/mcp-invocations.md |
+| CloudCamp BD MCP (external, competition guidance) | DEMONSTRATED | Claude Code read `cloudcamp://knowledge-base` over Streamable HTTP on 2026-10-19; no product data sent (docs/evidence/mcp-invocations.md) |
 | Public deployment | PLANNED | No target, URL or deployment performed |
 | Trained Agrogami extraction checkpoints | BLOCKED_EXTERNAL_DEPENDENCY | No annotations or checkpoints |
 | Representative linked-borrower predictive validation; real-world fairness validation | BLOCKED_EXTERNAL_DEPENDENCY | No representative mature linked outcomes |
 | Production-grade IAM / tenant isolation | PLANNED | Static token/grant mapping only |
 
-Current verified default suite: **460 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`); `pip check` clean. Counts in earlier sections are historical.
+## Scored synthetic demo pass — 2026-10-16
+
+| Claim | Status | Evidence / boundary |
+|---|---|---|
+| Seeded SYNTHETIC labelled-borrower generator (2,000 borrowers, 92 days of SMS each, through real intake/ledger/feature code) | TESTED | tests/test_synthetic_demo.py regenerates committed rows bit-for-bit; data/synthetic/DATA_CARD.md. Labels are synthetic and say nothing about real repayment |
+| Feature-snapshot → RiskDataset bridge with null-preserving exclusion and seeded stratified split | TESTED | tests/test_synthetic_demo.py; no zero-filling; 0 of 2,000 rows excluded in the committed population |
+| Configurable tree hyperparameters and LR regularisation (CLI flags) | TESTED | train_risk.py / train_synthetic_risk.py flags; defaults chosen by 5-fold CV on the synthetic training split only |
+| "Synthetic recovery test" (LR/LightGBM/XGBoost, sigmoid-calibrated, 400-row test split) | DEMONSTRATED_WITH_SYNTHETIC_DATA | data/synthetic/metrics.json: calibrated AUC 0.744 / 0.749 / 0.744; Brier 0.114 / 0.113 / 0.115; log-loss 0.376 / 0.374 / 0.378, against a generating-rule ceiling of 0.803 (observable part 0.779). Recovery of a synthetic rule only; not predictive performance, calibration validity or fairness |
+| Own-wallet registration and ownership resolution at SMS intake | TESTED | tests/test_synthetic_demo.py; unregistered accounts still route AMBIGUOUS_OWNERSHIP to review |
+| Per-account balance-continuity check at SMS intake (BALANCE_INCONSISTENCY) | TESTED | Continuity unit cases and the perturbation CLI test: Tk 500 → Tk 5,000 with an unchanged balance is flagged and the score withheld |
+| Rahim scored end to end (ILLUSTRATIVE, model probability, 300–850 index, TreeSHAP) | DEMONSTRATED_WITH_SYNTHETIC_DATA | scripts/build_demo.py; tests/test_synthetic_demo.py. Synthetic applicant and model; not an underwriting decision |
+| Idempotent one-command demo rebuild | DEMONSTRATED_WITH_SYNTHETIC_DATA | Two from-scratch builds on 2026-10-16 produced SHA-256-identical data/synthetic files and model artefacts and the same content digest; ledger UUIDs and recording times are freshly generated by design |
+| Backend serves the demo checkpoint (`/ready` risk: true) | DEMONSTRATED_WITH_SYNTHETIC_DATA | scripts/run_demo_api.ps1 settings; in-process FastAPI startup check. No public deployment |
+
+Scored-demo pass default suite: **477 passed, 3 optional heavy tests deselected** on Python 3.14.8 (the 460 earlier cases unchanged plus 17 in tests/test_synthetic_demo.py).
+
+Current verified default suite, 2026-10-20: **477 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`); `pip check` clean. The 2026-10-05 freeze-pass count of 460 and other earlier counts are historical.

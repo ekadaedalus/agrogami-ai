@@ -117,6 +117,36 @@ class LogisticRiskModel:
         return cls(ModelArtifact.model_validate(data["artifact"]), data["coefficients"], data["intercept"], data["mean"], data["scale"])
 
 
+class TreeHyperparameters(Contract):
+    """Explicit tree settings; defaults are sized for roughly 2,000 training rows.
+
+    Shallow, strongly regularised trees were chosen by 5-fold cross-validation on the synthetic
+    training split only (never the test split). TreeRiskModel.fit without hyperparameters keeps
+    its original tiny-fixture settings.
+    """
+    n_estimators: int = Field(default=300, ge=1, le=10000)
+    learning_rate: float = Field(default=0.02, gt=0, le=1)
+    max_depth: int = Field(default=2, ge=1, le=16)
+    num_leaves: int = Field(default=5, ge=2, le=4096)
+    min_child_samples: int = Field(default=60, ge=1)
+    min_child_weight: float = Field(default=8.0, ge=0)
+    subsample: float = Field(default=0.8, gt=0, le=1)
+    colsample_bytree: float = Field(default=0.8, gt=0, le=1)
+    reg_lambda: float = Field(default=1.0, ge=0)
+    random_state: int = 0
+
+    def estimator_params(self, algorithm: str) -> dict[str, Any]:
+        common = dict(n_estimators=self.n_estimators, learning_rate=self.learning_rate, max_depth=self.max_depth,
+                      subsample=self.subsample, colsample_bytree=self.colsample_bytree, reg_lambda=self.reg_lambda,
+                      random_state=self.random_state, n_jobs=1)
+        if algorithm == "lightgbm":
+            return common | dict(num_leaves=self.num_leaves, min_child_samples=self.min_child_samples,
+                                 subsample_freq=1, deterministic=True, verbosity=-1)
+        if algorithm == "xgboost":
+            return common | dict(min_child_weight=self.min_child_weight)
+        raise ValueError("supported tree algorithm required")
+
+
 class TreeRiskModel:
     def __init__(self, estimator: Any, artifact: ModelArtifact):
         self.estimator, self.artifact = estimator, artifact
@@ -136,16 +166,21 @@ class TreeRiskModel:
         raise ValueError("unsupported tree model")
 
     @classmethod
-    def fit(cls, data: RiskDataset, *, algorithm: str, scope: ValidationScope, version: str) -> "TreeRiskModel":
+    def fit(cls, data: RiskDataset, *, algorithm: str, scope: ValidationScope, version: str,
+            hyperparameters: TreeHyperparameters | None = None) -> "TreeRiskModel":
         x, y = training_rows(data, scope)
         if algorithm == "lightgbm":
             from lightgbm import LGBMClassifier
-            estimator = LGBMClassifier(n_estimators=50, max_depth=3, num_leaves=7, min_child_samples=2,
-                                       random_state=0, n_jobs=1, verbosity=-1)
+            settings = (hyperparameters.estimator_params(algorithm) if hyperparameters else
+                        dict(n_estimators=50, max_depth=3, num_leaves=7, min_child_samples=2,
+                             random_state=0, n_jobs=1, verbosity=-1))
+            estimator = LGBMClassifier(**settings)
         elif algorithm == "xgboost":
             from xgboost import XGBClassifier
-            estimator = XGBClassifier(n_estimators=50, max_depth=3, random_state=0, n_jobs=1,
-                                       eval_metric="logloss", tree_method="hist", enable_categorical=False)
+            settings = (hyperparameters.estimator_params(algorithm) if hyperparameters else
+                        dict(n_estimators=50, max_depth=3, random_state=0, n_jobs=1))
+            # Numeric interface: categorical mode stays disabled for the tested TreeSHAP target/background.
+            estimator = XGBClassifier(**settings, eval_metric="logloss", tree_method="hist", enable_categorical=False)
         else:
             raise ValueError("supported tree algorithm required")
         estimator.fit(x, y)
