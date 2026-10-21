@@ -6,7 +6,7 @@ An explainable underwriting evidence and risk-audit workbench for thin-file cred
 
 **Demo environment**
 
-This demonstration uses synthetic, sample, or de-identified financial records. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness.
+This demonstration uses synthetic financial records only. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness.
 
 ## Project overview, problem and target users
 

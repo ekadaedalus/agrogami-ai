@@ -110,4 +110,16 @@ Historical local-completion suite: **251 passed, 3 heavy tests deselected**, Pyt
 
 Scored-demo pass default suite: **477 passed, 3 optional heavy tests deselected** on Python 3.14.8 (the 460 earlier cases unchanged plus 17 in tests/test_synthetic_demo.py).
 
-Current verified default suite, 2026-10-20: **477 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`); `pip check` clean. The 2026-10-05 freeze-pass count of 460 and other earlier counts are historical.
+Current verified default suite, 2026-10-20: **480 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`); `pip check` clean. The 2026-10-05 freeze-pass count of 460 and other earlier counts are historical.
+
+## Public synthetic deployment — 2026-10-20
+
+This section supersedes the earlier PLANNED public-deployment rows.
+
+| Claim | Status | Evidence |
+|---|---|---|
+| Public synthetic demo at https://agrogami.jmmn.tech | DEMONSTRATED_WITH_SYNTHETIC_DATA | API and Streamlit on 127.0.0.1, published by a named Cloudflare Tunnel (scripts/run_public.ps1, scripts/cloudflared-config.example.yml). Checked from outside on 2026-10-20: UI, /health, /docs, /api/docs and /api/openapi.json return 200; /ready reports risk true and MCP off |
+| Deployment-mode access control on the public URL | DEMONSTRATED_WITH_SYNTHETIC_DATA | Anonymous applicant reads 401; published viewer token reads Rahim (200) but not other applicants (403) and cannot write (403); reviewer/admin tokens unpublished |
+| Prism MCP not publicly exposed | DEMONSTRATED | No tunnel route to port 8001; /mcp on the public host does not reach Prism |
+| CSV bulk SMS intake | TESTED | POST /api/v1/intake/sms/bulk; tests/integration/test_backend_api.py bulk tests cover per-row parity with single intake, synthetic-only rows, reviewer role, header/UTF-8/row/size limits |
+| Production deployment, uptime or hosting SLA | PLANNED | The demo runs on a development machine; availability depends on that machine staying on |

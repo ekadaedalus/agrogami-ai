@@ -1,6 +1,8 @@
 """Versioned local research API. No production authentication or deployment claim."""
 import base64
 import binascii
+import csv
+import io
 import json
 from typing import Annotated, Literal, TypeVar
 from uuid import UUID
@@ -8,7 +10,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Header, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import AwareDatetime, Field
+from starlette.concurrency import run_in_threadpool
+from pydantic import AwareDatetime, Field, ValidationError
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from agrogami.schemas import Contract, Source, CanonicalEvent, CandidateExtraction, Coverage, FeatureSnapshot
 from agrogami.config import Settings
@@ -40,6 +43,26 @@ class SMSRequest(Contract):
     account_id: UUID | None = None
     text: str = Field(min_length=1, max_length=16000)
     provider: str = Field(min_length=1, max_length=80)
+
+
+BULK_SMS_MAX_ROWS = 500
+BULK_SMS_MAX_BYTES = 1_000_000
+BULK_SMS_COLUMNS = {"applicant_id", "provider", "text"}
+
+
+class BulkSMSRow(Contract):
+    row: int
+    status: Literal["COMPLETED", "NEEDS_REVIEW", "BLOCKED_MODEL_ARTIFACT", "REJECTED"]
+    job_id: UUID | None = None
+    reasons: tuple[str, ...] = ()
+
+
+class BulkSMSResult(Contract):
+    rows: tuple[BulkSMSRow, ...]
+    submitted: int
+    accepted: int
+    needs_review: int
+    rejected: int
 
 
 class DocumentRequest(Contract):
@@ -206,6 +229,55 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
             current: Annotated[Principal, Depends(writer)]) -> Job:
         intake_access(current, payload.applicant_id, service, synthetic=payload.text.startswith("SYNTHETIC:"))
         return service.sms_intake(**payload.model_dump())
+
+    @app.post("/api/v1/intake/sms/bulk", response_model=BulkSMSResult, dependencies=[Depends(reviewer)], status_code=201,
+              openapi_extra={"requestBody": {"required": True, "content": {"text/csv": {"schema": {"type": "string"}}}}})
+    async def sms_bulk(request: Request, service: Annotated[ApplicationService, Depends(domain)],
+                       current: Annotated[Principal, Depends(reviewer)]) -> BulkSMSResult:
+        # One CSV row per SMS; each row runs the same intake/parse/validation as single intake.
+        # Synthetic rows only: real bulk import needs a consent workflow that does not exist yet.
+        if request.headers.get("content-type", "").split(";")[0].strip() != "text/csv":
+            raise HTTPException(415, "Content-Type must be text/csv")
+        if int(request.headers.get("content-length") or 0) > BULK_SMS_MAX_BYTES:
+            raise HTTPException(413, "CSV exceeds 1 MB")
+        body = await request.body()
+        if len(body) > BULK_SMS_MAX_BYTES:
+            raise HTTPException(413, "CSV exceeds 1 MB")
+        try:
+            reader = csv.DictReader(io.StringIO(body.decode("utf-8-sig")))
+            columns = set(reader.fieldnames or ())
+            if not BULK_SMS_COLUMNS <= columns or not columns <= BULK_SMS_COLUMNS | {"account_id"}:
+                raise HTTPException(422, "CSV header must be applicant_id,provider,text (optional account_id)")
+            records = list(reader)
+        except (UnicodeDecodeError, csv.Error):
+            raise HTTPException(422, "CSV must be valid UTF-8")
+        if not records:
+            raise HTTPException(422, "CSV has no rows")
+        if len(records) > BULK_SMS_MAX_ROWS:
+            raise HTTPException(413, f"CSV exceeds {BULK_SMS_MAX_ROWS} rows")
+
+        def process() -> BulkSMSResult:
+            results = []
+            for number, record in enumerate(records, start=2):  # row 1 is the header
+                try:
+                    item = SMSRequest(applicant_id=record.get("applicant_id"), provider=record.get("provider"),
+                                      text=record.get("text"), account_id=record.get("account_id") or None)
+                except ValidationError:
+                    results.append(BulkSMSRow(row=number, status="REJECTED", reasons=("INVALID_ROW",)))
+                    continue
+                if not item.text.startswith("SYNTHETIC:"):
+                    results.append(BulkSMSRow(row=number, status="REJECTED", reasons=("NON_SYNTHETIC_ROW",)))
+                    continue
+                if not can_access_applicant(current, item.applicant_id, service.store):
+                    results.append(BulkSMSRow(row=number, status="REJECTED", reasons=("APPLICANT_ACCESS_DENIED",)))
+                    continue
+                job = service.sms_intake(**item.model_dump())
+                results.append(BulkSMSRow(row=number, status=job.status, job_id=job.job_id, reasons=job.reasons))
+            return BulkSMSResult(rows=tuple(results), submitted=len(results),
+                                 accepted=sum(r.status == "COMPLETED" for r in results),
+                                 needs_review=sum(r.status == "NEEDS_REVIEW" for r in results),
+                                 rejected=sum(r.status == "REJECTED" for r in results))
+        return await run_in_threadpool(process)
 
     @app.post("/api/v1/intake/document", response_model=Job, dependencies=[Depends(writer)], status_code=201)
     def document(payload: DocumentRequest, service: Annotated[ApplicationService, Depends(domain)],

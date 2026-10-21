@@ -343,3 +343,46 @@ def test_api_assessment_history_exposes_new_review_snapshot(client, service):
     assert len(history) == 1
     assert history[0]["status"] == "NEEDS_REVIEW"
     assert history[0]["display_score"] is None
+
+
+def bulk_csv(*rows, header="applicant_id,provider,text"):
+    lines = [header] + [",".join(f'"{value}"' for value in row) for row in rows]
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def post_bulk(client, body, headers=REVIEWER, content_type="text/csv"):
+    return client.post("/api/v1/intake/sms/bulk", content=body, headers=headers | {"content-type": content_type})
+
+
+def test_bulk_sms_runs_each_row_through_single_intake_and_reports_per_row(client, service):
+    good = sms_payload()
+    other = sms_payload(text="SYNTHETIC: Receipt Tk 250.00. Fee Tk 0.00. TrxID B. Date 2025-12-02. Time 11:00:00+06:00.")
+    unsupported = sms_payload(text="SYNTHETIC: unsupported template 100")
+    real = sms_payload(text="Receipt Tk 100.00. Fee Tk 0.00. TrxID C. Date 2025-12-03. Time 09:00:00+06:00.")
+    rows = [(p["applicant_id"], p["provider"], p["text"]) for p in (good, other, unsupported, real)]
+    rows.append(("not-a-uuid", "SYNTHETIC-bKash-like", good["text"]))
+    response = post_bulk(client, bulk_csv(*rows))
+    assert response.status_code == 201
+    body = response.json()
+    single = client.post("/api/v1/intake/sms", json=sms_payload(), headers=REVIEWER).json()
+    assert [row["row"] for row in body["rows"]] == [2, 3, 4, 5, 6]
+    assert body["rows"][0]["status"] == single["status"]
+    assert body["rows"][2]["status"] == "NEEDS_REVIEW"
+    assert body["rows"][3] == {"row": 5, "status": "REJECTED", "job_id": None, "reasons": ["NON_SYNTHETIC_ROW"]}
+    assert body["rows"][4]["reasons"] == ["INVALID_ROW"]
+    assert body["submitted"] == 5 and body["rejected"] == 2
+    assert body["accepted"] + body["needs_review"] == 3
+    for row in body["rows"][:3]:
+        assert client.get(f"/api/v1/jobs/{row['job_id']}", headers=REVIEWER).status_code == 200
+
+
+def test_bulk_sms_requires_reviewer_csv_header_and_limits(client):
+    row = tuple(sms_payload()[key] for key in ("applicant_id", "provider", "text"))
+    assert post_bulk(client, bulk_csv(row), headers={"x-agrogami-token": "viewer-test"}).status_code == 403
+    assert post_bulk(client, bulk_csv(row), content_type="application/json").status_code == 415
+    assert post_bulk(client, bulk_csv(row, header="who,what,text")).status_code == 422
+    assert post_bulk(client, bulk_csv(row, header="applicant_id,provider,text,extra")).status_code == 422
+    assert post_bulk(client, bulk_csv()).status_code == 422
+    assert post_bulk(client, b"\xff\xfe broken").status_code == 422
+    assert post_bulk(client, bulk_csv(*[row] * 501)).status_code == 413
+    assert post_bulk(client, b"applicant_id,provider,text\n" + b"x" * 1_000_001).status_code == 413

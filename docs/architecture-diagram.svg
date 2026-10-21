@@ -29,7 +29,7 @@
   <rect width="1110" height="800" fill="#ffffff"/>
 
   <text x="30" y="44" font-size="22" font-weight="700" fill="#0f172a">Agrogami AI — evidence-to-assessment architecture</text>
-  <text x="30" y="68" font-size="12.5" fill="#475569">Local research prototype · synthetic data only · no generative model at runtime · a loan officer makes the decision</text>
+  <text x="30" y="68" font-size="12.5" fill="#475569">Current release · synthetic data only · no generative model at runtime · a loan officer makes the decision</text>
 
   <text x="30" y="94" class="lane">1 · EVIDENCE BOUNDARY</text>
 
@@ -162,7 +162,7 @@
 
   <!-- Legend -->
   <rect class="box" x="30" y="752" width="28" height="16" rx="3"/>
-  <text class="n" x="66" y="765">running in the prototype</text>
+  <text class="n" x="66" y="765">running in the current release</text>
   <rect class="off" x="230" y="752" width="28" height="16" rx="3"/>
   <text class="n" x="266" y="765">built, not active or not yet run</text>
   <rect class="ev" x="470" y="752" width="28" height="16" rx="3"/>

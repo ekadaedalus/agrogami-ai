@@ -1,6 +1,6 @@
 # Build status — local workbench completion
 
-Starting checkpoint independently verified: Python 3.14.8 / Windows, **223 passed, 3 optional heavy tests deselected**. Previous local-completion suite: **251 passed, 3 deselected**. Historical pre-remediation suite, 2026-10-05: **253 passed, 3 deselected**. Final freeze pass, 2026-10-05: 460 passed, 3 deselected. **Current, 2026-10-20: 477 passed, 3 deselected**. See the scored synthetic demo pass section below. Original financial schemas/storage/reconciliation/features/fixtures were preserved. The original 107 foundation cases remain in the full green suite. No large models/datasets were downloaded.
+Starting checkpoint independently verified: Python 3.14.8 / Windows, **223 passed, 3 optional heavy tests deselected**. Previous local-completion suite: **251 passed, 3 deselected**. Historical pre-remediation suite, 2026-10-05: **253 passed, 3 deselected**. Final freeze pass, 2026-10-05: 460 passed, 3 deselected. **Current, 2026-10-20: 480 passed, 3 deselected**. See the scored synthetic demo pass section below. Original financial schemas/storage/reconciliation/features/fixtures were preserved. The original 107 foundation cases remain in the full green suite. No large models/datasets were downloaded.
 
 ## Implemented and tested
 
@@ -109,3 +109,13 @@ Verified:
 - **Perturbation check:** BALANCE_INCONSISTENCY, assessment NEEDS_REVIEW, and the score is withheld.
 
 All of these are synthetic software demonstrations, not real predictive, calibration or fairness evidence. `private_data/agrogami.db`, earlier `synthetic_demo` scenarios and `.env` were not modified.
+
+## Public demo and repository pass — 2026-10-20 to 2026-10-22
+
+- **Public synthetic demo:** live at https://agrogami.jmmn.tech through a named Cloudflare Tunnel (`scripts/run_public.ps1 -WithTunnel`). Deployment mode, fresh tokens, a read-only judge code limited to Rahim and the abstention applicant; Prism stays on localhost. Checked from outside: anonymous applicant reads 401, judge code reads Rahim 200 and other applicants 403.
+- **Current Rahim result on the rebuilt demo:** ILLUSTRATIVE, calibrated probability 0.0389, display score 658, 337 accepted events. The 0.0518 / 641 figures above come from the earlier 2026-10-16 build.
+- **CSV bulk SMS intake:** `POST /api/v1/intake/sms/bulk`, reviewer/admin only, synthetic rows only, at most 500 rows and 1 MB; each row runs single SMS intake. Covered by two integration tests.
+- **Project docs:** the architecture diagram is served at `/docs/assets/architecture-diagram.svg` with a version tag; build-status is no longer rendered on `/docs`.
+- **Test isolation:** a local `.env` can no longer load demo models into the default-startup test, and `tests/conftest.py` creates the gitignored `.pytest_temp` parent so `python -m pytest` works on a fresh clone.
+- **Repository:** Apache-2.0 `LICENSE`, rewritten README, and the previous README moved to `docs/technical-reference.md`. Google Antigravity references removed (never used). Demo banner now says synthetic records only.
+- **Test suite:** **480 passed, 3 deselected** (`python -m pytest -q`).

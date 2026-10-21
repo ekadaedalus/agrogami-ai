@@ -42,7 +42,7 @@ def test_mcp_example_exists_and_contains_no_literal_credentials():
 
 def test_vscode_prism_example_uses_http_and_prompted_secret():
     example = json.loads((ROOT / ".vscode/mcp.json.example").read_text(encoding="utf-8"))
-    prism = example["servers"]["agrogamiPrism"]
+    prism = example["servers"]["agrogami-prism"]
     assert prism["type"] == "http"
     assert prism["url"] == "http://127.0.0.1:8001/mcp"
     assert not {"command", "args", "env", "envFile"} & prism.keys()

@@ -30,7 +30,7 @@ The installed VS Code version is 1.140.0. Copy the credential-free example to th
 Copy-Item .vscode/mcp.json.example .vscode/mcp.json
 ```
 
-The example uses `type: http`, the `/mcp` URL and an Authorization header with a password input. Run **MCP: List Servers**, select **agrogamiPrism**, connect, and supply the configured local secret when prompted. The four tool names above should appear. No secret belongs in either committed examples or the local JSON file; `.vscode/mcp.json` is excluded from Git and Docker contexts. Restart the separately running Prism process after rotating its configured credentials.
+The example uses `type: http`, the `/mcp` URL and an Authorization header with a password input. Run **MCP: List Servers**, select **agrogami-prism**, connect, and supply the configured local secret when prompted. The four tool names above should appear. No secret belongs in either committed examples or the local JSON file; `.vscode/mcp.json` is excluded from Git and Docker contexts. Restart the separately running Prism process after rotating its configured credentials.
 
 VS Code's Agent Host does not forward configurations requiring interactive `${input:...}` values. For that execution mode, use `Bearer ${env:AGROGAMI_MCP_AUTH_TOKEN}` in the ignored configuration, remove `inputs`, and provide the variable to the VS Code process before launching it. A dedicated token remains viewer-only; use a configured reviewer/admin credential when aggregate fairness access is required. See the [official VS Code MCP configuration reference](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) for HTTP headers, secret inputs and the Agent Host limitation. This schema check does not claim an executed VS Code client connection.
 

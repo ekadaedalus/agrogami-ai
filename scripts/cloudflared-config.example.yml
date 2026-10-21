@@ -1,0 +1,12 @@
+# Cloudflare Tunnel ingress for the public SYNTHETIC demo. Copy to %USERPROFILE%\.cloudflared\config.yml
+# and replace <TUNNEL-ID>. One hostname: API paths go to FastAPI, everything else to Streamlit.
+tunnel: <TUNNEL-ID>
+credentials-file: C:\Users\HP\.cloudflared\<TUNNEL-ID>.json
+
+ingress:
+  - hostname: agrogami.jmmn.tech
+    path: ^/(docs|api|health|ready)(/.*)?$
+    service: http://127.0.0.1:8000
+  - hostname: agrogami.jmmn.tech
+    service: http://127.0.0.1:8501
+  - service: http_status:404

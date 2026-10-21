@@ -1,105 +1,184 @@
-# Agrogami AI
+<div align="center">
 
-Traceable underwriting from financial records traditional credit systems ignore
+### Agrogami AI
 
-Turn mobile-money messages, informal ledger records, receipts, and bills into traceable financial evidence for thin-file credit assessment.
+**Credit built on evidence.**
 
-An explainable underwriting evidence and risk-audit workbench for thin-file credit.
+Traceable underwriting from the financial records traditional credit systems ignore.
 
-**Demo environment**
+<br />
 
-This demonstration uses synthetic, sample, or de-identified financial records. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness. No real financial extraction checkpoint or linked-outcome borrower model is supplied.
+[![Live demo](https://img.shields.io/badge/live%20demo-agrogami.jmmn.tech-16a34a)](https://agrogami.jmmn.tech)
+[![Video](https://img.shields.io/badge/video-3--minute%20pitch-red?logo=youtube&logoColor=white)](https://youtu.be/DRZB9UrpXwc)
+[![Docs](https://img.shields.io/badge/docs-%2Fdocs-2563eb)](https://agrogami.jmmn.tech/docs)
+[![Tag](https://img.shields.io/github/v/tag/ekadaedalus/agrogami-ai?label=version)](https://github.com/ekadaedalus/agrogami-ai/tags)
+[![Python](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Tests](https://img.shields.io/badge/tests-480%20passing-brightgreen)](docs/build-status.md)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-## Local architecture and status
+<sub>[Live demo](https://agrogami.jmmn.tech) · [Video](https://youtu.be/DRZB9UrpXwc) · [Docs](https://agrogami.jmmn.tech/docs) · [API reference](https://agrogami.jmmn.tech/api/docs) · [Technical reference](docs/technical-reference.md) · [Issues](https://github.com/ekadaedalus/agrogami-ai/issues)</sub>
 
-Evidence → Candidates → Validation & Reconciliation → Canonical Ledger → Deterministic 30/60/90-day Features → Scoped Risk → Holdout Calibration → Explanation → Offline Fairness → Immutable Assessment.
+<br />
 
-Implemented: Decimal/aware-time contracts, immutable SQLite ledger/corrections, reconciliation, explicit null/coverage/provenance features, synthetic SMS parsing, raster preprocessing, local extraction adapters/scaffolds, logistic/LightGBM/XGBoost interfaces, calibration, project score, TreeSHAP and fairness utilities, FastAPI, Streamlit, project docs and authorized read-only Prism MCP. UI/API/MCP reuse application services; financial logic is not copied into presentation code.
+<img src="docs/architecture-diagram.svg" alt="Agrogami AI architecture: SMS intake, template parser, validation, immutable ledger, 30/60/90-day features, calibrated risk model, TreeSHAP reasons, assessment snapshot, and the FastAPI, Streamlit and Prism MCP read surfaces" width="900" />
 
-Blocked: real provider templates, consented annotated financial records, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints, mature linked repayment outcomes and validated borrower performance/fairness. No model/dataset download occurs automatically. Public deployment and proof links remain planned. Docker files are prepared; build/run is unverified because Docker is unavailable on the tested host.
+</div>
 
-## Setup
+Agrogami AI turns mobile-money records into a traceable financial-evidence ledger and an explainable, calibrated risk assessment for people with little or no formal credit history. Every number traces back to the message it came from, and when the evidence is not good enough, Agrogami withholds the score instead of guessing.
 
-Release version: **0.3.0** (pyproject, `agrogami.__version__`, FastAPI/OpenAPI metadata). Tested interpreter: **Python 3.14.8, Windows**. Other declared Python versions are not separately tested. Keep the existing environment; on a clean machine select the intended Python before creating it.
+It is built for Bangladesh's micro-enterprises: the furniture workshop or market stall with years of steady bKash and Nagad activity but no bureau file. A loan officer makes the decision; Agrogami shows the evidence and the reasons.
+
+- **Every number has a source.** Each accepted event keeps its source hash, the exact character span it was read from, the parser version, its validation state and its correction history.
+- **Rules verify before models score.** Duplicate SMS count once, reversals cancel the payment they reverse, and transfers between the applicant's own wallets are never counted as income.
+- **Missing is unknown, never zero.** Features over 30, 60 and 90 days keep gaps visible; a row with a missing feature is excluded from the model rather than zero-filled.
+- **It refuses to guess.** Insufficient or inconsistent evidence returns `INSUFFICIENT_EVIDENCE` or `NEEDS_REVIEW` with a null score, never a low one.
+- **Scores come with reasons.** Calibrated LightGBM with TreeSHAP reasons linked to the events they came from, and a 300–850 display score labelled "project-specific; not FICO".
+- **Any AI client can inspect it, none can change it.** Agrogami Prism is a read-only, authenticated MCP server over the same evidence and assessments.
+
+> [!NOTE]
+> All data in this repository and in the live demo is **synthetic**. Model results are a synthetic recovery test, not validated borrower underwriting. See [Responsible use](#responsible-use).
+
+## Try it
+
+Open **[agrogami.jmmn.tech](https://agrogami.jmmn.tech)**. Applicant data needs an access code: competition judges will find a read-only judge code in the submission. Paste it into **Developer settings → Demo credential** in the sidebar, then pick an applicant:
+
+- **Rahim**, a synthetic furniture-workshop owner: 328 messages across two wallets, scored at a 3.89% modelled risk (display score 658), with the reasons behind it.
+- **The abstention demo**: one verified inflow and unknown coverage, so the assessment is withheld.
+
+Project documentation is public at [/docs](https://agrogami.jmmn.tech/docs) and the API reference at [/api/docs](https://agrogami.jmmn.tech/api/docs).
+
+## Why Agrogami
+
+Banks can only judge what they can measure. Micro-enterprises keep their financial lives in mobile-money messages, receipts and handwritten khatas, so a lender sees no file at all, and a creditworthy borrower is turned away.
+
+Turning those records into credit evidence is harder than reading them:
+
+- **An extraction mistake becomes a financial mistake.** One extra digit changes an amount tenfold.
+- **The same money appears more than once.** Duplicate SMS, a receipt and its matching message, and transfers between a person's own wallets all inflate income if counted naively.
+- **Gaps look like bad behaviour.** Incomplete history is easily mistaken for non-payment, and aggregation makes uncertain evidence look precise.
+
+Agrogami puts a validated evidence boundary between unstructured records and the score: nothing reaches the model until it has been parsed, reconciled, accepted and linked to its source.
+
+## How it works
+
+**Read → Verify → Measure → Score**
+
+| Stage | What happens |
+|---|---|
+| **Read** | Mobile-money SMS are parsed by a strict, versioned template parser (`deterministic-synthetic-sms` v1.0) that records the character span of every field. Unsupported messages go to review, never to a guess. |
+| **Verify** | Validation checks required fields, duplicate transaction IDs, reversals, wallet ownership and running-balance continuity. Accepted events enter an immutable ledger; corrections append new versions with a reviewer and a reason. |
+| **Measure** | Deterministic 30/60/90-day features over the window before the assessment: external cash flow, inflow variability, bill-payment punctuality, liquidity where balances are attested, activity and evidence coverage. |
+| **Score** | Calibrated LightGBM (with logistic regression and XGBoost as benchmarks) produces a modelled risk, TreeSHAP reasons and an immutable assessment snapshot that records every evidence version, schema and model it used. |
+
+The same records are served three ways, all through one application service: a Streamlit workbench, a versioned FastAPI (`/api/v1`) and the Agrogami Prism MCP server.
+
+## Results
+
+Trained on a seeded population of 2,000 synthetic borrowers (`synthetic-population-v1`, 362,018 messages) built through this same pipeline, with default labels from a published rule ([data card](data/synthetic/DATA_CARD.md)). Calibrated with sigmoid (Platt) scaling on a separate split; tested on 400 held-out borrowers (62 defaults).
+
+| Model | AUC | Brier |
+|---|---|---|
+| **LightGBM (primary)** | **0.7487** | **0.1133** |
+| Logistic regression (baseline) | 0.7437 | 0.1142 |
+| XGBoost (challenger) | 0.7441 | 0.1147 |
+| *Generating rule (ceiling)* | *0.8032* | — |
+
+These numbers measure how much of a known synthetic rule the pipeline recovers. They are **not** real-world predictive performance.
+
+**Robustness, shown on synthetic data:**
+- **Abstention:** one verified inflow with unknown coverage gives "Assessment withheld — insufficient evidence" and no score.
+- **Perturbation:** turning one of Rahim's Tk 500 receipts into Tk 5,000, with the reported balance unchanged, is flagged `BALANCE_INCONSISTENCY` and the score is withheld (`python -m scripts.perturbation_check`).
+
+## Features
+
+### Evidence
+
+| Capability | Description |
+|---|---|
+| SMS intake | Single SMS, or a CSV bulk upload of up to 500 synthetic rows, each through the same parser and validation |
+| Document intake | Raster images are checked for size, legibility and orientation; line regions keep their coordinates |
+| Immutable ledger | Append-only SQLAlchemy storage of sources, candidates, events, corrections, feature snapshots and assessments |
+| Reconciliation | Duplicates, reversals, own-wallet transfers, cash-in/out and unsettled credit sales handled by explicit rules |
+| Provenance | SHA-256 source hash, text span or image region, parser version and validation state on every event |
+
+### Assessment
+
+| Capability | Description |
+|---|---|
+| Scoped models | Every model artefact declares `SYNTHETIC_DEMO`, `PUBLIC_DATASET_BENCHMARK`, `REAL_LINKED_OUTCOME_EXPERIMENT` or `UNTRAINED`; synthetic-scope scores are always `ILLUSTRATIVE` |
+| Calibration | Platt or isotonic calibration on a split disjoint from training |
+| Explanations | Interventional TreeSHAP on the raw margin, rendered as controlled reason codes linked to evidence |
+| Abstention | `NEEDS_REVIEW` and `INSUFFICIENT_EVIDENCE` keep the score null |
+| Fairness audit | Group TPR/FPR, selection and abstention rates with Wilson intervals; protected attributes are offline audit inputs only (implemented, not yet evaluated) |
+
+### Surfaces
+
+| Capability | Description |
+|---|---|
+| Streamlit workbench | Ten pages: Overview, Applicant Evidence, Evidence Review, Event Ledger, Financial Profile, Assessment, Explanation, Fairness & Evaluation, Audit Trail, Documentation |
+| REST API | Versioned `/api/v1` with viewer, reviewer and admin roles and per-applicant grants in deployment mode |
+| Project docs | Allowlisted, escaped rendering of the repository documentation at `/docs` |
+| Agrogami Prism (MCP) | Four read-only tools (`get_evidence_ledger`, `get_assessment_snapshot`, `get_explanation_factors`, `get_fairness_audit`) over Streamable HTTP with bearer authentication; recorded calls from OpenAI Codex and Claude Code in [docs/evidence](docs/evidence/mcp-invocations.md) |
+
+## Quick start
+
+Tested on **Python 3.14.8, Windows**. From PowerShell in the repository root:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --only-binary=:all: -e ".[test,local,trees,fairness]"
 Copy-Item .env.example .env
+.\.venv\Scripts\python.exe -m scripts.build_demo     # seeded synthetic population, models, Rahim and the abstention applicant
+.\scripts\run_demo_api.ps1                           # API on http://127.0.0.1:8000
+.\scripts\run_ui.ps1                                 # UI on http://127.0.0.1:8501 (second terminal)
 ```
 
-Copy the example only when creating a new local environment file; preserve existing overrides. `requirements.txt` delegates to pyproject.toml. `constraints-tested.txt` records the exact package versions installed in the tested Python 3.14.8 / Windows environment; it is an optional constraints file (`pip install -c constraints-tested.txt -e ".[test,local,trees,fairness]"`), not a required lock. Extras: ui, mcp, local, trees, fairness, models and postgres. Models dependencies never fetch checkpoints. Python 3.14 wheels installed successfully for Streamlit 1.65.0, MCP 1.30.0 and Markdown 3.11; see dependency-compatibility.json.
+Run the tests with `.\.venv\Scripts\python.exe -m pytest -q` (480 pass offline, no model downloads). Prism, tokens, deployment mode, the public tunnel and Docker are covered in the [technical reference](docs/technical-reference.md).
 
-In ignored `.env`, configure `AGROGAMI_DEMO_TOKENS` as JSON mapping locally generated secret tokens to viewer/reviewer/admin. Do not commit tokens. UI uses the credential entered in the collapsed **Developer settings** section; API uses X-Agrogami-Token. No credential permits API viewer reads; invalid credentials fail. Candidate review, corrections, assessment creation and fairness retrieval require reviewer/admin. With `AGROGAMI_LOCAL_DEMO_MODE=false` (deployment mode), every request must authenticate and nonadmin credentials need explicit applicant UUID grants in `AGROGAMI_APPLICANT_GRANTS`. These static grants are tested local authorization, not production identity or tenant isolation.
+## Project layout
 
-## Run API, UI and Prism
-
-Run each in its own PowerShell terminal from the repository root:
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn agrogami.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
-.\.venv\Scripts\python.exe -m streamlit run src/agrogami/ui/app.py --server.address=127.0.0.1 --server.port=8501 --server.headless=true --browser.gatherUsageStats=false
-.\.venv\Scripts\python.exe -m agrogami.mcp.server
+```
+src/agrogami/    contracts, storage, extraction, validation, features, risk, calibration,
+                 explainability, fairness, application service, API, UI and MCP server
+tests/           unit, integration and adversarial tests (480 default)
+scripts/         demo build, training, perturbation check, run and verification helpers
+data/synthetic/  seeded synthetic population, splits, metrics and data card
+docs/            architecture, data contract, feature dictionary, evaluation protocol,
+                 responsible AI, limitations, claims register and MCP evidence
 ```
 
-Before starting Prism set AGROGAMI_MCP_ENABLED=true and a secret AGROGAMI_MCP_AUTH_TOKEN or reuse configured demo tokens. Dedicated MCP token grants viewer only; demo reviewer/admin tokens authorize aggregate fairness. Send Authorization: Bearer on every Streamable HTTP request. Exactly four tools: get_evidence_ledger, get_assessment_snapshot, get_explanation_factors, get_fairness_audit. No write tools exist. Internal SDK protocol verification does not prove an external client connection; external Codex and Claude Code invocations are recorded separately in docs/evidence/mcp-invocations.md.
+## Roadmap
 
-Local UI: http://127.0.0.1:8501. Project docs: http://127.0.0.1:8000/docs. Swagger: http://127.0.0.1:8000/api/docs. OpenAPI: /api/openapi.json. Health: /health. Readiness: /ready (database plus optional artifact presence). Prism: http://127.0.0.1:8001/mcp. These are local run addresses, not public deployments.
+- **Perception:** a consented, annotated message and khata dataset; fine-tune DeBERTa-v3-small for SMS and evaluate TrOCR and LayoutLMv3 (adapters are built and tested; no checkpoint is trained yet).
+- **Bangla khata reading.**
+- **A backtest on a real loan book**, then a **live lender pilot**. Pilot targets: under 10 minutes per assessment, a full audit trail, and 250 borrowers with a first microfinance partner.
 
-Windows helpers: scripts/run_api.ps1, run_ui.ps1, run_mcp.ps1, run_tests.ps1. They use repository-relative paths. On Linux substitute .venv/bin/python.
+## Responsible use
 
-## Demonstration
+- **Synthetic only.** No real borrower, khata, utility-bill or provider data is used. The SMS templates are invented look-alikes; no live bKash, Nagad or bank integration is claimed.
+- **Not a lending decision.** Outputs are illustrative research results, and a loan officer decides. The 300–850 score is not FICO or bureau-equivalent.
+- **No fairness or validity claim.** Fairness metrics are implemented but not evaluated; real predictive and fairness claims need representative, consented data linked to mature repayment outcomes.
+- **No generative model at runtime.** Every credit-relevant value comes from task-specific models and deterministic code; development used OpenAI Codex and Claude under the [`AGENTS.md`](AGENTS.md) contract.
+- **Claim discipline.** Every claim maps to code, a test, an artefact or a stated limitation in the [claims register](docs/claims-register.md). See also [limitations](docs/limitations.md).
 
-Open **Developer settings** in the sidebar to enter a reviewer credential; the API URL and generated applicant UUID are there too. Select **Applicant Evidence**, SYNTHETIC, External inflow and submit. **Evidence Review** leads with a readable status, amount, source and review reason. Expand **Technical evidence** to inspect UUIDs, original/normalized JSON, confidence, parser/template versions, SHA-256 hashes and source spans. Explicitly corroborate synthetic ownership and append a reviewed version. **Event Ledger** preserves the evidence versions. **Financial Profile** summarizes verified inflow, evidence coverage, payment history and balance history from existing backend values, then retains the full 30/60/90-day tables under **Detailed underwriting evidence**. Unknown coverage-dependent fields remain unavailable.
+## Contributors
 
-Create an assessment with unknown coverage: **Assessment withheld** explains insufficient evidence while preserving the null score and underlying system state. Reasons reflect the stored evidence and artifact scope; complete balance/obligation histories and representative linked borrower outcomes are not implied by a sample transaction. Inspect the reasons, then correct the accepted amount with a Decimal string and reason. **Audit Trail** retains old events/snapshots and the newly appended unscored review snapshot in technical drill-down. Candidate-only documents require complete manually corroborated canonical JSON; missing extraction checkpoints are visibly blocked. **Fairness & Evaluation** requires an actual stored run UUID; no fabricated charts are supplied.
+<a href="https://github.com/ekadaedalus/agrogami-ai/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ekadaedalus/agrogami-ai" alt="Contributors" />
+</a>
 
-Navigation: Overview, Applicant Evidence, Evidence Review, Event Ledger, Financial Profile, Assessment, Explanation, Fairness & Evaluation, Audit Trail, Documentation.
+Built for the **Idea to Unicorn** track of the International AI Builders Congress 2026.
 
-**Scored synthetic demo.** `.\.venv\Scripts\python.exe -m scripts.build_demo` rebuilds a seeded 2,000-borrower SYNTHETIC population ([data card](data/synthetic/DATA_CARD.md)), trains and calibrates LR/LightGBM/XGBoost (the "synthetic recovery test"), and writes a fresh demo ledger. That ledger holds the scored applicant Rahim and the abstention applicant `fcba6da1-…`. Serve it with `.\scripts\run_demo_api.ps1` (demo settings for that API process only; `/ready` reports `risk: true`) plus `.\scripts\run_ui.ps1`, then pick either applicant from the sidebar **Demo applicant** selector. `python -m scripts.perturbation_check` shows how a balance-inconsistent amount edit is flagged and the score withheld. Synthetic labels say nothing about real repayment.
+## License
 
-See [demo walkthrough](docs/local-demo.md), [API](docs/backend-api.md), [Prism](docs/mcp.md), [datasets](docs/datasets.md), [evaluation protocol](docs/evaluation-protocol.md) and [limitations](docs/limitations.md).
+Apache License 2.0. See [LICENSE](LICENSE).
 
-## Tests and live verification
+---
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m scripts.verify_local_runtime --api-port 0 --ui-port 0 --mcp-port 0
-.\.venv\Scripts\python.exe -m scripts.prepare_demo
-```
+<div align="center">
+<sub>
 
-Default tests run offline without model downloads, external MCP, PostgreSQL or CloudCamp. Three supplied-local-checkpoint tests are optional/heavy. pytest's default options use a repository-local, ignored `.pytest_temp/default` basetemp and disable the cache plugin, so the plain command does not depend on the system Temp directory. The runtime verifier defaults to ports 8000/8501/8001; `0` selects free loopback ports. It starts isolated temporary API/UI/Prism processes, verifies the synthetic correction/snapshot flow and authenticated official SDK reads over Streamable HTTP, then stops only its own processes. `prepare_demo` appends a fresh SYNTHETIC scenario under `private_data/synthetic_demo/<uuid>/` and prints its recording identifiers; earlier scenarios are never modified.
+[Live demo](https://agrogami.jmmn.tech) · [Video](https://youtu.be/DRZB9UrpXwc) · [Docs](https://agrogami.jmmn.tech/docs) · [Technical reference](docs/technical-reference.md) · [Apache 2.0](LICENSE)
 
-Current verified default suite, 2026-10-20: **477 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`). Historical counts (253 → 460 → 477) are recorded in docs/build-status.md; the original 107 deterministic foundation cases remain green.
-
-For an already running API, set AGROGAMI_SMOKE_TOKEN to a configured reviewer/admin credential and run:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/smoke_test.py --api-url http://127.0.0.1:8000
-```
-
-Smoke tooling intentionally appends synthetic records and returns nonzero on failure. No fake success is reported. Extraction heavy tests require explicitly supplied local artifacts; default startup loads no models/calibrator.
-
-## Containers
-
-Prepared commands; **not executed on this host**:
-
-```powershell
-docker compose config
-docker compose up --build api ui
-docker compose --profile mcp up --build
-docker compose down
-```
-
-Configure ignored local tokens before enabling MCP. Default SQLite uses a named private volume shared by API/Prism. Ports publish only on localhost. Image uses Python 3.14, a nonroot user, no embedded secrets or model downloads; API/UI healthchecks are included. Docker config/build/runtime validation remains a human action on a Docker-capable machine. No public deployment occurred.
-
-## Responsible use and remaining work
-
-Agrogami does not represent sample outputs as validated lending decisions. Real underwriting-performance and fairness claims require representative pre-application records linked to mature repayment outcomes.
-
-Project-specific 300–850 mapping is not FICO, bureau-equivalent or approval; scaling does not create calibration. TreeSHAP is association, not causality or legal adverse-action compliance. Protected attributes are separate offline inputs; Fairlearn optimization gives no future parity guarantee. Missing receipts are not nonpayment, unobserved days are not zero income, and public datasets retain their original target/scope.
-
-Private data/cache/.env/database/logs are ignored; raw evidence is absent from ordinary logs. Production identity, applicant isolation, migrations, encryption, retention and interrupted correction/snapshot recovery remain work before public financial use. CloudCamp MCP is external competition guidance only and receives no product records. VS Code/coding assistants are development tools only; no RAG scoring, orchestration agents or automated lending/disbursement is implemented.
-
-Repository: src/agrogami contains contracts, storage, application, extraction, features, risk/calibration, explainability/fairness, API, ui and mcp; tests contain unit/integration/optional heavy coverage; scripts contain local training/evaluation/run/smoke helpers; docs contain authoritative contracts/status/claims. Read [final implementation record](docs/codex-handoff.md), [build status](docs/build-status.md) and [claims register](docs/claims-register.md). No release, package publication or public deployment was created.
+</sub>
+</div>

@@ -216,7 +216,7 @@ def main() -> None:
         st.title(page)
         st.caption(PAGE_HELPERS[page])
     with st.container(key="demo_notice"):
-        st.warning("**Demo environment** · Synthetic, sample, or de-identified records. Illustrative assessments are not lending decisions or validated individual creditworthiness.", icon="⚠️")
+        st.warning("**Demo environment** · Synthetic records only. Illustrative assessments are not lending decisions or validated individual creditworthiness.", icon="⚠️")
     settings = Settings()
     choice = st.sidebar.selectbox("Demo applicant", (CUSTOM_APPLICANT, *DEMO_APPLICANTS), key="demo_applicant")
     previous_choice = st.session_state.get("selected_demo")

@@ -10,7 +10,7 @@ Turn mobile-money messages, informal ledger records, receipts, and bills into tr
 
 **Demo environment**
 
-This demonstration uses synthetic, sample, or de-identified financial records. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness. Agrogami does not represent sample outputs as validated lending decisions. Real underwriting-performance and fairness claims require representative pre-application records linked to mature repayment outcomes.
+This demonstration uses synthetic financial records only. Assessment outputs shown here are illustrative and are not lending decisions or validated individual creditworthiness. Agrogami does not represent sample outputs as validated lending decisions. Real underwriting-performance and fairness claims require representative pre-application records linked to mature repayment outcomes.
 
 Implemented: deterministic canonical ledger/features, candidate/model adapters, scoped research risk/calibration/explanation/fairness services, immutable snapshots, FastAPI, ten-page Streamlit application, synchronized project docs and authorized four-tool read-only Prism. Application/domain services are the sole source of financial logic.
 

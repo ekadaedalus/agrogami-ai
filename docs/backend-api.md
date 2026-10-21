@@ -19,6 +19,7 @@ The server provides the local evidence and risk-audit workflow. Assessment outpu
 | GET /docs | Allowlisted rendered project documentation; no user-selected file paths |
 | GET /api/v1/candidates/{candidate_id} | Reviewer/admin; original candidate fields and provenance for intentional review |
 | POST /api/v1/intake/sms | SMSRequest; viewer; synchronous immutable job/source/candidates and optional pending event |
+| POST /api/v1/intake/sms/bulk | `text/csv` body, header `applicant_id,provider,text` (optional `account_id`); reviewer/admin; synthetic rows only; ≤500 rows and ≤1 MB; each row runs single SMS intake and returns its own job status or rejection reason (INVALID_ROW, NON_SYNTHETIC_ROW, APPLICANT_ACCESS_DENIED); rows persist independently |
 | POST /api/v1/intake/document | DocumentRequest with base64 raster bytes and explicit synthetic marker; viewer; preprocessing and optional local extraction candidates; no upload filename/path accepted |
 | GET /api/v1/jobs/{job_id} | Viewer; intake outcome/reasons/UUIDs, not an asynchronous queue |
 | GET /api/v1/sources/{source_id} | Viewer; safe source metadata, no object path/raw bytes |

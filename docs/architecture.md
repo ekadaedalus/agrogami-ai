@@ -2,7 +2,7 @@
 
 ![Agrogami AI evidence-to-assessment architecture](architecture-diagram.svg)
 
-Solid boxes run in the prototype. Dashed boxes are built but not active or not yet run (perception adapters, offline fairness audit).
+Solid boxes run in the current release. Dashed boxes are built but not active or not yet run (perception adapters, offline fairness audit).
 
 ## Second-pass backend extension
 

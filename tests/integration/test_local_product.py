@@ -114,6 +114,20 @@ def test_project_docs_escape_uploaded_html_and_deny_path_selection(tmp_path):
         assert "<script>" not in response.text
         assert "&lt;script&gt;" in response.text
 
+def test_project_docs_serve_architecture_diagram_by_allowlisted_name_only():
+    from fastapi import FastAPI
+    from agrogami.api.project_docs import router
+    app = FastAPI(docs_url=None)
+    app.include_router(router(Path("docs").resolve()))
+    with TestClient(app) as client:
+        assert 'src="/docs/assets/architecture-diagram.svg?v=' in client.get("/docs").text
+        image = client.get("/docs/assets/architecture-diagram.svg")
+        assert image.headers["cache-control"] == "no-cache"
+        assert image.status_code == 200 and image.headers["content-type"].startswith("image/svg+xml")
+        assert image.headers["x-content-type-options"] == "nosniff"
+        for name in ("architecture.md", "..%2F..%2F.env", "evidence%2Fmcp-invocations.md"):
+            assert client.get(f"/docs/assets/{name}").status_code == 404
+
 def test_ui_overview_and_invalid_identifier_no_traceback():
     from streamlit.testing.v1 import AppTest
     app = AppTest.from_file(Path("src/agrogami/ui/app.py").resolve(), default_timeout=10).run()
