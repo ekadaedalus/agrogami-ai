@@ -116,11 +116,12 @@
   <path class="ln" d="M250,372 L202,372"/>
   <text class="n" x="250" y="428">Illustrative 300–850 display score, labelled "not FICO"; insufficient or inconsistent evidence → "Assessment withheld"</text>
 
-  <text x="30" y="466" class="lane">3 · READ SURFACES</text>
 
   <!-- Row C -->
   <path class="ln" d="M115,404 L115,558"/>
   <path class="ln" d="M115,500 L555,500 L555,558"/>
+  <rect x="26" y="454" width="132" height="16" fill="#ffffff"/>
+  <text x="30" y="466" class="lane">3 · READ SURFACES</text>
   <text class="lbl" x="300" y="492">Prism reads stored records; never recomputes</text>
 
   <rect class="box" x="30" y="560" width="170" height="64" rx="8"/>
