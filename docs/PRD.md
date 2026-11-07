@@ -20,4 +20,4 @@ Product presentation: lead with the product name and tagline, followed by suppor
 
 The included synthetic intake/review/feature/assessment/correction flow is usable and tested through UI/API/MCP. Real trained financial extraction and linked-outcome validation remain blocked. Docker artifacts exist but their build/runtime is unverified on the current host.
 
-Next human work: manual UI review/external MCP client invocation, Docker-capable validation, real datasets/annotations/checkpoints/outcomes, production security/operational readiness, explicitly authorized deployment and evidence-based proof recording. No handoff to another coding agent is required for the local implementation pass.
+Next human work: manual UI review, Docker-capable validation, real datasets/annotations/checkpoints/outcomes, production security/operational readiness, explicitly authorized deployment and evidence-based proof recording. No handoff to another coding agent is required for the local implementation pass.

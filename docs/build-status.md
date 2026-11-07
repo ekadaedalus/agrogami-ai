@@ -18,7 +18,7 @@ Dockerfile, docker-compose.yml, .dockerignore, localhost-only publishing, nonroo
 
 Smoke: python scripts/smoke_test.py uses a configured AGROGAMI_SMOKE_TOKEN and intentionally appends marked synthetic evidence. Full isolated verification: python -m scripts.verify_local_runtime. Windows helpers use relative paths and disable access logs/Streamlit usage telemetry. Readiness reports missing optional models without failing the deterministic demo.
 
-## Presentation pass — 2026-10-04
+## Presentation pass — 2026-10-04 (Codex)
 
 Agrogami AI now leads the Streamlit UI, API metadata, README and project /docs, with the tagline “Traceable underwriting from financial records traditional credit systems ignore.” The Demo environment notice remains visible below the headline. API URL, Demo credential and Applicant UUID are in collapsed Developer settings. Human-readable evidence states lead the workflow; Technical evidence preserves full JSON, UUIDs, provenance, spans, SHA-256, parser/template metadata, machine codes and immutable version links.
 
@@ -30,7 +30,7 @@ Final default verification: **253 passed, 3 optional heavy tests deselected in 4
 
 Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp <fresh .pytest_temp directory>`. Replace the placeholder with a new directory inside the ignored workspace `.pytest_temp` root. A read-only check of the already running API on port 8000 still returned its old OpenAPI title; existing user services were not restarted. Restart the local API to load the new metadata and /docs code.
 
-## Targeted UI polish — 2026-10-05
+## Targeted UI polish — 2026-10-05 (Codex)
 
 Overview alone retains the full hero; the other nine pages have compact titles and helper lines. The secondary demo notice uses explicit dark text on light amber, including nested Markdown text. CSS hides only the Deploy button and heading link anchors, preserving the Streamlit header, toolbar and sidebar collapse/expand controls. Actions read Assess available evidence, Load assessment and Review candidate evidence. Insufficient assessments display Assessment withheld — Insufficient evidence without changing their null score or backend status.
 
@@ -42,7 +42,7 @@ Full-suite command: `$testTempRoot = Join-Path ([System.IO.Path]::GetTempPath())
 
 Navigation follow-up, 2026-10-05: removed the toolbar-hiding selectors; only Deploy and heading link anchors are hidden. Full default suite rerun on Python 3.14.8: **253 passed, 3 optional heavy tests deselected in 56.47s**, using a fresh system temporary directory and disabled pytest cache. CSS review found no header/sidebar/navigation hiding rules; browser visual verification remains unperformed.
 
-## Final remediation, verification and freeze pass — 2026-10-05
+## Final remediation, verification and freeze pass — 2026-10-05 (Codex)
 
 Current release version **0.3.0** (pyproject, `agrogami.__version__`, FastAPI `/health` and OpenAPI metadata; enforced by tests/test_version_consistency.py). The `.venv` editable-install dist-info still reports 0.1.0 because setuptools is absent from the environment and refreshing it would require a network build; rerun `pip install -e ".[test,local,trees,fairness]"` to update it. Runtime and API values do not read that metadata.
 
@@ -72,10 +72,6 @@ Local demo mode (`AGROGAMI_LOCAL_DEMO_MODE=true`) remains an explicit localhost 
 
 Real provider templates, consented financial annotations, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints and mature linked repayment outcomes remain absent. Real predictive/calibration/fairness/latency claims remain blocked. Final UI review, Docker-capable validation, production operations/security, explicitly authorized public deployment, video recording and proof links remain human/external tasks. No fake result/URL/proof was created.
 
-## ANTIGRAVITY HANDOFF
-
-Historical heading retained only because a foundation test requires it. Google Antigravity was never used on this project and this handoff never happened: Codex completed the feasible local product pass. There is no pending UI/docs/Prism implementation handoff. Read docs/codex-handoff.md → Codex Final Implementation Record for current status. Next stage is human review and operational/data/proof work, not regenerating the core.
-
 ## Exact run commands
 
 ```powershell
@@ -89,7 +85,7 @@ Historical heading retained only because a foundation test requires it. Google A
 
 Prism requires AGROGAMI_MCP_ENABLED=true and configured secret credentials. README contains clean-install/environment/Docker commands.
 
-## Scored synthetic demo pass — 2026-10-16
+## Scored synthetic demo pass — 2026-10-16 (Claude Code)
 
 Added:
 - a seeded SYNTHETIC population generator (`src/agrogami/synthetic/`, `scripts/generate_population.py`);
@@ -110,12 +106,12 @@ Verified:
 
 All of these are synthetic software demonstrations, not real predictive, calibration or fairness evidence. `private_data/agrogami.db`, earlier `synthetic_demo` scenarios and `.env` were not modified.
 
-## Public demo and repository pass — 2026-10-20 to 2026-10-22
+## Public demo and repository pass — 2026-10-20 to 2026-10-22 (Claude Code)
 
 - **Public synthetic demo:** live at https://agrogami.jmmn.tech through a named Cloudflare Tunnel (`scripts/run_public.ps1 -WithTunnel`). Deployment mode, fresh tokens, a read-only judge code limited to Rahim and the abstention applicant; Prism stays on localhost. Checked from outside: anonymous applicant reads 401, judge code reads Rahim 200 and other applicants 403.
 - **Current Rahim result on the rebuilt demo:** ILLUSTRATIVE, calibrated probability 0.0389, display score 658, 337 accepted events. The 0.0518 / 641 figures above come from the earlier 2026-10-16 build.
 - **CSV bulk SMS intake:** `POST /api/v1/intake/sms/bulk`, reviewer/admin only, synthetic rows only, at most 500 rows and 1 MB; each row runs single SMS intake. Covered by two integration tests.
 - **Project docs:** the architecture diagram is served at `/docs/assets/architecture-diagram.svg` with a version tag; build-status is no longer rendered on `/docs`.
 - **Test isolation:** a local `.env` can no longer load demo models into the default-startup test, and `tests/conftest.py` creates the gitignored `.pytest_temp` parent so `python -m pytest` works on a fresh clone.
-- **Repository:** Apache-2.0 `LICENSE`, rewritten README, and the previous README moved to `docs/technical-reference.md`. Google Antigravity references removed (never used). Demo banner now says synthetic records only.
+- **Repository:** Apache-2.0 `LICENSE`, rewritten README, and the previous README moved to `docs/technical-reference.md`. Demo banner now says synthetic records only.
 - **Test suite:** **480 passed, 3 deselected** (`python -m pytest -q`).

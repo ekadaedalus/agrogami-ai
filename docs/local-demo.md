@@ -14,7 +14,7 @@ Turn mobile-money messages, informal ledger records, receipts, and bills into tr
 
 ## Current scope and implemented vs planned
 
-Implemented locally: deterministic foundation, extraction/model/governance interfaces, FastAPI, Streamlit, synchronized docs and read-only Prism. Actual trained financial extraction checkpoints and linked-outcome validation remain blocked. Public deployment, proof links and external MCP-client reuse are PLANNED.
+Implemented locally: deterministic foundation, extraction/model/governance interfaces, FastAPI, Streamlit, synchronized docs and read-only Prism. Actual trained financial extraction checkpoints and linked-outcome validation remain blocked. The synthetic demo is live at https://agrogami.jmmn.tech; external MCP use by Codex and Claude Code is recorded in docs/evidence/mcp-invocations.md.
 
 ## Architecture and evidence boundary
 
@@ -82,4 +82,4 @@ Tested Python 3.14.8 on Windows. VS Code is the supplied IDE; coding assistants 
 
 ## Limitations and changelog
 
-Foundation pass implemented deterministic contracts/ledger/features. Second pass added backend/research interfaces. Completion pass added UI/docs/Prism, end-to-end/protocol/UI tests, smoke/run helpers and Docker artifacts. Docker is unavailable on the verified host; container build/run is unverified. Production identity/isolation/migrations/crash recovery/retention and real financial datasets/checkpoints remain future work. No public URLs, videos, model metrics, fairness guarantees or external MCP proof are invented.
+Foundation pass implemented deterministic contracts/ledger/features. Second pass added backend/research interfaces. Completion pass added UI/docs/Prism, end-to-end/protocol/UI tests, smoke/run helpers and Docker artifacts. Docker is unavailable on the verified host; container build/run is unverified. Production identity/isolation/migrations/crash recovery/retention and real financial datasets/checkpoints remain future work.

@@ -1,6 +1,6 @@
 # Agent contract
 
-Current pass authorization: complete the local Streamlit prototype, synchronized project /docs, read-only authorized Prism MCP, offline integration tests, smoke/run tooling and Docker artifacts. This supersedes second-pass exclusions below. Preserve financial logic and external-blocker claims. Public deployment is authorized by the project owner (2026-10-20) for the synthetic demo only: API in deployment mode (`AGROGAMI_LOCAL_DEMO_MODE=false`) with fresh non-demo tokens, only a viewer token published, Prism kept on localhost, and no real or private data. The implementation owner remains Codex.
+Current pass authorization: complete the local Streamlit prototype, synchronized project /docs, read-only authorized Prism MCP, offline integration tests, smoke/run tooling and Docker artifacts. This supersedes second-pass exclusions below. Preserve financial logic and external-blocker claims. Public deployment is authorized by the project owner (2026-10-20) for the synthetic demo only: API in deployment mode (`AGROGAMI_LOCAL_DEMO_MODE=false`) with fresh non-demo tokens, only a viewer token published, Prism kept on localhost, and no real or private data. Implementation: OpenAI Codex (3–6 Oct 2026), then Claude Code (from 13 Oct 2026). The team reviews and approves all changes.
 
 This repository implements a deterministic evidence foundation for Agrogami. Read docs/codex-handoff.md, architecture.md, data-contract.md, feature-dictionary.md, claims-register.md and build-status.md before changes.
 

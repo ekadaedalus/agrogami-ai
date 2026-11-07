@@ -17,6 +17,7 @@ from agrogami.schemas import Contract, FeatureSnapshot
 MODEL_WINDOW = 90
 MODEL_FEATURES = ("external_inflow_total", "external_outflow_total", "net_external_cash_flow", "inflow_cv",
                   "payment_punctuality", "median_payment_delay_days", "active_day_share")
+_BRIDGE_RULESET_TAG = "brx-03852fafa7a9855a"
 
 
 class BridgeExclusion(Contract):

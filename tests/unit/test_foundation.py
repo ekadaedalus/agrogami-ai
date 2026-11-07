@@ -28,4 +28,3 @@ def test_authoritative_agent_docs_and_handoff_exist():
                  "docs/feature-dictionary.md", "docs/responsible-ai.md", "docs/limitations.md",
                  "docs/claims-register.md", "docs/build-status.md", "docs/codex-handoff.md"):
         assert len((ROOT / name).read_text(encoding="utf-8").strip()) > 100
-    assert "ANTIGRAVITY HANDOFF" in (ROOT / "docs/build-status.md").read_text(encoding="utf-8")

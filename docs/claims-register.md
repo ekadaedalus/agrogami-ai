@@ -20,9 +20,9 @@ Allowed statuses: PLANNED, IMPLEMENTED, TESTED, DEMONSTRATED_WITH_SAMPLE_DATA, D
 | Real financial TrOCR/LayoutLMv3/DeBERTa checkpoints and linked-outcome risk models | BLOCKED_EXTERNAL_DEPENDENCY | Adapters/scaffolds exist; actual annotated data/checkpoints absent |
 | Real calibration, explanation and fairness validation | BLOCKED_EXTERNAL_DEPENDENCY | Utilities exist; representative trained model/evaluation data absent |
 | Streamlit UI, project docs and Prism protocol | TESTED | tests/integration/test_local_product.py; synthetic workflow and internal protocol only |
-| Public deployment | PLANNED | No target, credentials, deployed URL or production validation |
+| Public deployment | PLANNED at the time; superseded 2026-10-20 (see “Public synthetic deployment” below) | No target, credentials, deployed URL or production validation |
 | Predictive performance, fairness, latency or production-readiness claims | UNSUPPORTED | No supporting empirical evaluation |
-| Public demo/video proof or external MCP reuse | PLANNED | No public deployment, video or manually connected external client evidence |
+| Public demo/video proof or external MCP reuse | Superseded | See the deployment section and docs/evidence/mcp-invocations.md |
 
 Verified complete default test run and per-subsystem counts are recorded in docs/codex-handoff.md. Synthetic pipeline tests are software evidence, not dataset/model metrics.
 
@@ -66,7 +66,7 @@ Historical second-pass default suite: **223 passed, 3 heavy checkpoint tests des
 | Synthetic correction/recomputed features/immutable snapshots | DEMONSTRATED_WITH_SYNTHETIC_DATA | live smoke plus HTTP client/UI tests preserve old records and reference new event versions |
 | Docker artifacts and local run helpers | IMPLEMENTED | Dockerfile/compose/ignore/healthchecks and relative PowerShell helpers; Docker unavailable, no build/runtime proof |
 | External Codex/Claude MCP client reuse | DEMONSTRATED_WITH_SYNTHETIC_DATA | Codex and Claude Code each called `get_evidence_ledger` over Streamable HTTP for synthetic applicants; see docs/evidence/mcp-invocations.md. Internal official SDK tests are separate evidence |
-| Public deployment/video/proof links | PLANNED | No public target/credentials/URL or video provided/performed |
+| Public deployment/video/proof links | PLANNED at the time; superseded 2026-10-20 (see “Public synthetic deployment” below) | No public target/credentials/URL or video provided/performed at the time. Video: https://youtu.be/DRZB9UrpXwc |
 | Representative borrower risk/calibration/fairness/latency validation | BLOCKED_EXTERNAL_DEPENDENCY | No real financial checkpoints, representative linked mature outcomes or annotations |
 
 Historical local-completion suite: **251 passed, 3 heavy tests deselected**, Python 3.14.8. Historical (pre-remediation) full default suite, 2026-10-05: **253 passed, 3 heavy tests deselected in 46.67s** on Python 3.14.8, including **30 local-product cases**. All original foundation and second-pass cases remain green. The command used `-p no:cacheprovider --basetemp <fresh system temporary directory>` to bypass workspace temporary/cache ACL failures; only configured optional heavy tests were deselected. Tests are software evidence, not real-world underwriting/accuracy/fairness proof.
@@ -89,7 +89,7 @@ Historical local-completion suite: **251 passed, 3 heavy tests deselected**, Pyt
 | Docker configuration | IMPLEMENTED | Docker not installed on the tested host; no config/build/run evidence |
 | External Codex/Claude MCP invocation | DEMONSTRATED_WITH_SYNTHETIC_DATA | Recorded in docs/evidence/mcp-invocations.md |
 | CloudCamp BD MCP (external, competition guidance) | DEMONSTRATED | Claude Code read `cloudcamp://knowledge-base` over Streamable HTTP on 2026-10-19; no product data sent (docs/evidence/mcp-invocations.md) |
-| Public deployment | PLANNED | No target, URL or deployment performed |
+| Public deployment | PLANNED at the time; superseded 2026-10-20 (see “Public synthetic deployment” below) | No target, URL or deployment performed |
 | Trained Agrogami extraction checkpoints | BLOCKED_EXTERNAL_DEPENDENCY | No annotations or checkpoints |
 | Representative linked-borrower predictive validation; real-world fairness validation | BLOCKED_EXTERNAL_DEPENDENCY | No representative mature linked outcomes |
 | Production-grade IAM / tenant isolation | PLANNED | Static token/grant mapping only |

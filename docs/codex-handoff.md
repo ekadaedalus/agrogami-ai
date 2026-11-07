@@ -1,5 +1,7 @@
 # Codex Handoff
 
+This record covers Codex’s work, 3–6 Oct 2026. Work from 13 Oct onward was done with Claude Code and is logged in build-status.md.
+
 The sections through "Claims That Must NOT Yet Be Made" record the first-pass baseline. First/second-pass sections below are historical records. The "Codex Final Implementation Record" records local completion; the appended presentation and targeted UI polish records describe subsequent changes. Previous exclusions/handoff tasks are superseded. The original deterministic core remains unchanged; newer interfaces do not imply real-model validation.
 
 ## Repository State
@@ -213,7 +215,7 @@ Risk settings: AGROGAMI_RISK_MODEL_PATH and AGROGAMI_CALIBRATOR_PATH together; n
 
 Scripts: train_extractor.py/evaluate_extractor.py for explicit local annotations/checkpoints or prediction pairs; train_risk.py/evaluate_risk.py for disjoint scoped splits and optional separate audit groups. `evaluate_risk.py --persist` appends actual local report metadata for evaluation routes. Use --help for exact required flags. These scripts are not evidence of real financial training or evaluation.
 
-## Planned next tasks (completed by Codex; Antigravity was never used)
+## Planned next tasks (completed by Codex)
 
 1. Read AGENTS.md, this second-pass section, architecture.md, data-contract.md, feature-dictionary.md, datasets.md, backend-api.md, claims-register.md and build-status.md.
 2. Build Streamlit review/assessment flows against the backend. Make scope, nulls, evidence coverage, review state and project-score limitations visible; never substitute invented scores/checkpoints. Preserve immutable review/assessment history and demo authorization.

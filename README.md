@@ -40,7 +40,7 @@ It is built for Bangladesh's micro-enterprises: the furniture workshop or market
 
 ## Try it
 
-Open **[agrogami.jmmn.tech](https://agrogami.jmmn.tech)**. Applicant data needs an access code: competition judges will find a read-only judge code in the submission. Paste it into **Developer settings → Demo credential** in the sidebar, then pick an applicant:
+Open **[agrogami.jmmn.tech](https://agrogami.jmmn.tech)**. Available 10:00 AM – 2:00 AM BST (UTC+6) daily, Nov 20–25; if it’s unreachable, the video shows the full flow at 1:00–2:00. Applicant data needs an access code: competition judges will find a read-only judge code in the submission. Paste it into **Developer settings → Demo credential** in the sidebar, then pick an applicant:
 
 - **Rahim**, a synthetic furniture-workshop owner: 328 messages across two wallets, scored at a 3.89% modelled risk (display score 658), with the reasons behind it.
 - **The abstention demo**: one verified inflow and unknown coverage, so the assessment is withheld.
@@ -158,7 +158,7 @@ docs/            architecture, data contract, feature dictionary, evaluation pro
 - **Synthetic only.** No real borrower, khata, utility-bill or provider data is used. The SMS templates are invented look-alikes; no live bKash, Nagad or bank integration is claimed.
 - **Not a lending decision.** Outputs are illustrative research results, and a loan officer decides. The 300–850 score is not FICO or bureau-equivalent.
 - **No fairness or validity claim.** Fairness metrics are implemented but not evaluated; real predictive and fairness claims need representative, consented data linked to mature repayment outcomes.
-- **No generative model at runtime.** Every credit-relevant value comes from task-specific models and deterministic code; development used OpenAI Codex and Claude under the [`AGENTS.md`](AGENTS.md) contract.
+- **No generative model at runtime.** Every credit-relevant value comes from task-specific models and deterministic code; development used ChatGPT (ideation), OpenAI Codex (3–6 Oct) and Claude / Claude Code (from 13 Oct) under the [`AGENTS.md`](AGENTS.md) contract; all output was reviewed and tested by the team.
 - **Claim discipline.** Every claim maps to code, a test, an artefact or a stated limitation in the [claims register](docs/claims-register.md). See also [limitations](docs/limitations.md).
 
 ## Contributors
