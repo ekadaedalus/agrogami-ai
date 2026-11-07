@@ -20,6 +20,6 @@ Model/calibration split checks use caller-supplied stable sample IDs and tempora
 
 ## Local completion boundaries
 
-All ten Streamlit pages, authorized candidate review, project docs and read-only Prism protocol are implemented and locally tested. API/UI/Prism processes were actually launched and checked with temporary synthetic storage. UI uses explicit reviewer JSON changes/corroborated full candidate contracts rather than an automatic evidence-certification system. Scenario templates are synthetic; unsupported real formats remain review.
+All ten Streamlit pages, authorized candidate review, project docs and read-only Prism protocol are implemented and locally tested. API/UI/Prism processes were actually launched and checked with temporary synthetic storage. UI uses explicit reviewer JSON changes/corroborated full candidate contracts rather than an automatic evidence-certification system. Scenario templates are synthetic; unsupported real formats remain review. The Bangla localization covers interface text only; SMS parsing, reason/status codes and technical evidence remain English.
 
 Dockerfile/compose/ignore/healthchecks are prepared but Docker is not installed here, so config/build/run verification remains a human action. Containers are not production-ready financial infrastructure. No representative risk/fairness/calibration/latency evidence, model checkpoint, consented annotation dataset or live provider integration exists.

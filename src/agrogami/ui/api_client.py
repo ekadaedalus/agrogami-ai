@@ -6,6 +6,7 @@ from uuid import UUID
 from agrogami.application import Job
 from agrogami.assessment import AssessmentSnapshot
 from agrogami.schemas import CandidateExtraction, CanonicalEvent, FeatureSnapshot
+from agrogami.ui.i18n import t
 
 class ClientError(Exception):
     """Safe user-facing failure; never contains server response bodies."""
@@ -13,7 +14,7 @@ class ClientError(Exception):
 class APIClient:
     def __init__(self, base_url: str, token: str = "", transport=None):
         if not base_url.startswith(("http://", "https://")):
-            raise ClientError("API URL must use HTTP or HTTPS")
+            raise ClientError(t("client.url_scheme"))
         self.base_url, self.token, self.transport = base_url.rstrip("/"), token, transport
 
     def request(self, method: str, path: str, payload: dict | None = None):
@@ -33,13 +34,11 @@ class APIClient:
         except HTTPError as exc:
             raise ClientError(self._message(exc.code)) from None
         except (URLError, TimeoutError, OSError):
-            raise ClientError("API unavailable. Start the local backend and check its URL.") from None
+            raise ClientError(t("client.unavailable")) from None
 
     @staticmethod
     def _message(status: int) -> str:
-        return {401: "Invalid demo credential", 403: "Reviewer/admin authorization required",
-                404: "Record not found", 409: "Immutable version conflict", 422: "Invalid or unresolved evidence",
-                503: "Subsystem unavailable"}.get(status, "Backend request failed")
+        return t(f"client.{status}") if status in (401, 403, 404, 409, 422, 503) else t("client.failed")
 
     def intake_sms(self, payload: dict) -> Job:
         return Job.model_validate(self.request("POST", "/api/v1/intake/sms", payload))

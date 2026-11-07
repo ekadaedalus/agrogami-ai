@@ -2,6 +2,7 @@
 import base64
 import json
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from uuid import UUID, uuid4
 from urllib.parse import urlencode
 import streamlit as st
@@ -12,6 +13,8 @@ from agrogami.validation.rules import lineage_current_ids, reconcile
 from agrogami.ui.api_client import APIClient, ClientError
 from agrogami.ui.samples import SCENARIOS, sample_sms, synthetic_account
 from agrogami.ui.formatting import display, money, humanize, short_id, source_label, financial_summary
+from agrogami.ui.i18n import (BANGLA_FONT_IMPORT, BANGLA_FONT_RULES, DEFAULT_LANGUAGE, LANGUAGES, LANGUAGE_NAMES,
+                              LANGUAGE_STATE_KEY, LANGUAGE_WIDGET_KEY, current_language, has, t)
 from agrogami.synthetic.identities import DEMO_APPLICANTS, RAHIM_APPLICANT_ID
 from agrogami.synthetic.ledger import next_assessment_time
 from agrogami.synthetic.rahim import rahim_messages
@@ -21,25 +24,45 @@ CUSTOM_APPLICANT = "Custom applicant UUID"
 PAGES = ("Overview", "Applicant Evidence", "Evidence Review", "Event Ledger", "Financial Profile",
          "Assessment", "Explanation", "Fairness & Evaluation", "Audit Trail", "Documentation")
 
-PAGE_HELPERS: dict[str, str] = {
-    "Applicant Evidence": "Add financial records to begin building a traceable evidence profile.",
-    "Evidence Review": "Corroborate extracted facts and preserve each reviewed version.",
-    "Event Ledger": "Inspect recorded transactions and their review status.",
-    "Financial Profile": "Explore verified cash flow, coverage, and financial history.",
-    "Assessment": "Assess available evidence or load a previous assessment.",
-    "Explanation": "See the evidence and reasons behind a stored assessment.",
-    "Fairness & Evaluation": "Inspect stored research evaluations and authorized aggregate fairness reports.",
-    "Audit Trail": "Trace original evidence, reviewed versions, and assessment history.",
-    "Documentation": "Explore the project workflow, evidence contracts, and API reference.",
-}
+FAVICON = Path(__file__).parent / "assets" / "favicon.png"
+# Keyed selectboxes whose option labels are translated (format_func).
+TRANSLATED_SELECTBOXES = ("demo_applicant", "synthetic_scenario", "review_event")
+
+
+def page_icon() -> str | None:
+    """Project favicon; a missing asset falls back to Streamlit's default instead of failing."""
+    return str(FAVICON) if FAVICON.is_file() else None
+
+
+def shown(prefix: str, value: str, lang: str | None = None) -> str:
+    """Display label for an internal English identifier; the identifier itself stays the logic value."""
+    return t(prefix + value, lang) if has(prefix + value) else value
+
+
+def language_selector() -> None:
+    """Sidebar English/Bangla switch; the choice persists in session_state across reruns."""
+    def keep_choice() -> None:
+        chosen = st.session_state.get(LANGUAGE_WIDGET_KEY)
+        if chosen in LANGUAGES:
+            st.session_state[LANGUAGE_STATE_KEY] = chosen
+            # Re-assigning keeps each selection but makes the browser redraw it with the new labels;
+            # otherwise a closed selectbox keeps showing the previously formatted text.
+            for key in TRANSLATED_SELECTBOXES:
+                if key in st.session_state:
+                    st.session_state[key] = st.session_state[key]
+        else:  # Deselecting a segmented control keeps the current language.
+            st.session_state[LANGUAGE_WIDGET_KEY] = st.session_state.get(LANGUAGE_STATE_KEY, DEFAULT_LANGUAGE)
+    st.session_state.setdefault(LANGUAGE_WIDGET_KEY, st.session_state[LANGUAGE_STATE_KEY])
+    st.sidebar.segmented_control(t("sidebar.language"), LANGUAGES, format_func=LANGUAGE_NAMES.__getitem__,
+                                 key=LANGUAGE_WIDGET_KEY, on_change=keep_choice)
 
 
 def technical_evidence(payload: object, context: str = "", *, codes: tuple[str, ...] = ()) -> None:
     """Keep complete authorized payloads available without leading with machine output."""
-    label = "Technical evidence" + (f" — {context}" if context else "")
+    label = t("tech.label_context", context=context) if context else t("tech.label")
     with st.expander(label, expanded=False):
         for code in codes:
-            st.caption(f"Audit code: {code}")
+            st.caption(t("tech.audit_code", code=code))
         st.json(payload)
 
 
@@ -47,26 +70,26 @@ def review_reasons(codes: tuple[str, ...]) -> None:
     for code in codes:
         st.write(humanize(code))
         if code == "AMBIGUOUS_OWNERSHIP":
-            st.write("Ownership of this transaction could not be confirmed.")
+            st.write(t("review.ownership_unconfirmed"))
 
 
 def show_job(job: dict) -> None:
-    st.subheader(f"Evidence status: {humanize(job['status'])}")
+    st.subheader(t("job.status", status=humanize(job['status'])))
     review_reasons(tuple(job.get("reasons", ())))
-    st.caption("Source records and original candidates remain available for evidence review.")
-    technical_evidence(job, "intake record", codes=tuple(job.get("reasons", ())))
+    st.caption(t("job.sources_kept"))
+    technical_evidence(job, t("ctx.intake_record"), codes=tuple(job.get("reasons", ())))
 
 
 def show_event(event: CanonicalEvent) -> None:
-    st.subheader(f"Evidence status: {humanize(event.validation_status)}")
-    st.write(f"Amount: {money(event.amount, event.currency)}")
-    st.write(f"Source: {source_label(event.source_type, event.provider)}")
+    st.subheader(t("job.status", status=humanize(event.validation_status)))
+    st.write(t("event.amount", amount=money(event.amount, event.currency)))
+    st.write(t("event.source", source=source_label(event.source_type, event.provider)))
     st.caption(f"{humanize(event.transaction_type)} · {event.event_timestamp.isoformat()}")
-    st.caption(f"Event {short_id(event.event_id)}")
+    st.caption(t("event.reference", identifier=short_id(event.event_id)))
     review_reasons(event.review_reason)
     if event.supersedes_event_id:
-        st.caption("Reviewed version; the original evidence remains in the audit trail.")
-    technical_evidence(event.model_dump(mode="json"), "event version", codes=event.review_reason)
+        st.caption(t("event.reviewed_version"))
+    technical_evidence(event.model_dump(mode="json"), t("ctx.event_version"), codes=event.review_reason)
 
 
 def rahim_receipt_sms() -> str:
@@ -86,60 +109,66 @@ def ledger_rows(events: list[CanonicalEvent], edge_cases_only: bool = False) -> 
                     for event in accepted if event.reversal_of_event_id}
     duplicated_ids = {original for original in duplicate_of.values() if original}
 
-    def status(event: CanonicalEvent) -> str:
+    def status(event: CanonicalEvent) -> tuple[str, str]:
+        """(internal state, displayed label); filtering uses the internal state only."""
         if event.validation_status != ValidationStatus.ACCEPTED:
-            return humanize(event.validation_status)
+            return "validation", humanize(event.validation_status)
         if duplicate_of.get(event.event_id):
-            return "Duplicate"
+            return "duplicate", t("ledger.duplicate")
         if event.event_id in reversed_ids:
-            return "Reversed"
+            return "reversed", t("ledger.reversed")
         if event.reversal_of_event_id:
-            return "Reversal"
+            return "reversal", t("ledger.reversal")
         if event.ownership == "own":
-            return "Own transfer (excluded)"
-        return "Accepted"
+            return "own_transfer", t("ledger.own_transfer")
+        return "accepted", t("ledger.accepted")
     rows = []
     for event in sorted(current, key=lambda event: (event.event_timestamp, bool(duplicate_of.get(event.event_id)))):
-        label = status(event)
-        if edge_cases_only and label == "Accepted" and event.event_id not in duplicated_ids:
+        state, label = status(event)
+        if edge_cases_only and state == "accepted" and event.event_id not in duplicated_ids:
             continue
-        rows.append({"Date (UTC)": f"{event.event_timestamp.astimezone(timezone.utc):%Y-%m-%d %H:%M}",
-                     "Amount (Tk)": (f"{event.amount:,.2f}" if event.currency == "BDT" else money(event.amount, event.currency))
-                                    if event.amount is not None else "Unavailable",
-                     "Direction": humanize(event.direction),
-                     "Wallet": (event.provider or "Unknown").replace("SYNTHETIC-", "Synthetic "),
-                     "Status": label})
+        wallet = event.provider or t("label.UNKNOWN")
+        if wallet.startswith("SYNTHETIC-"):
+            wallet = t("ledger.synthetic_wallet", name=wallet.replace("SYNTHETIC-", "", 1))
+        rows.append({t("ledger.col_date"): f"{event.event_timestamp.astimezone(timezone.utc):%Y-%m-%d %H:%M}",
+                     t("ledger.col_amount"): (f"{event.amount:,.2f}" if event.currency == "BDT"
+                                              else money(event.amount, event.currency))
+                                             if event.amount is not None else t("fmt.unavailable"),
+                     t("ledger.col_direction"): humanize(event.direction),
+                     t("ledger.col_wallet"): wallet,
+                     t("ledger.col_status"): label})
     return rows
 
 
 def show_assessment(result: AssessmentSnapshot) -> None:
     if result.display_score is None:
         if result.status == SnapshotStatus.INSUFFICIENT_EVIDENCE:
-            st.subheader("Assessment withheld — Insufficient evidence")
-            st.write("Agrogami does not generate a credit-risk score when the verified evidence is not sufficient to support one.")
+            st.subheader(t("assess.withheld_insufficient"))
+            st.write(t("assess.no_score_insufficient"))
         else:
-            st.subheader("Assessment withheld")
+            st.subheader(t("assess.withheld"))
             st.markdown(f"**{humanize(result.status)}**")
-            st.write("A credit-risk score is unavailable until the evidence review and model requirements are met.")
-        st.caption(f"System state: {result.status}")
-        st.markdown("#### Why the assessment was withheld")
+            st.write(t("assess.no_score_pending"))
+        st.caption(t("assess.system_state", status=result.status))
+        st.markdown(f"#### {t('assess.why_withheld')}")
         features = result.feature_snapshot.features
         reasons = []
         balance = features.get("liquidity_floor")
         if balance is not None and balance.value is None:
             balance_coverage = features.get("balance_coverage")
             if balance_coverage is not None and balance_coverage.value == 1:
-                reasons.append("Available balance evidence does not support a valid liquidity measure")
+                reasons.append(t("assess.reason_liquidity_invalid"))
             else:
-                reasons.append("Complete balance history is unavailable")
+                reasons.append(t("assess.reason_balance_missing"))
         payment = features.get("payment_punctuality")
         if payment is not None and payment.value is None:
             if "complete_obligation_denominator_unknown" in payment.reasons:
-                reasons.append("Complete obligation history is unavailable")
+                reasons.append(t("assess.reason_obligation_missing"))
             else:
                 reasons.extend(humanize(reason) for reason in payment.reasons)
         if result.model_validation_scope != "REAL_LINKED_OUTCOME_EXPERIMENT":
-            reasons.append("Representative linked borrower outcomes have not yet been established")
+            reasons.append(t("assess.reason_no_outcomes"))
+        # Stored snapshot limitations are evidence text and stay in their recorded (English) wording.
         reasons.extend(limitation for limitation in result.limitations
                        if any(term in limitation.lower() for term in
                               ("withheld", "unavailable", "fresh coverage")))
@@ -147,44 +176,49 @@ def show_assessment(result: AssessmentSnapshot) -> None:
             st.write(f"- {reason}")
     else:
         st.subheader(humanize(result.status))
-        st.metric("Illustrative Project Score", display(result.display_score))
+        st.metric(t("assess.score_label"), display(result.display_score))
         if result.calibrated_probability is not None and result.raw_probability is not None:
-            st.caption(f"Calibrated probability of the modelled adverse label: {result.calibrated_probability:.2%} "
-                       f"(raw model output {result.raw_probability:.2%}).")
-        st.caption(f"System state: {result.status}")
-    st.caption(f"Artifact scope: {humanize(result.model_validation_scope)}")
-    st.caption("The project-specific 300–850 mapping is not FICO, bureau-equivalent, internationally standardized, or an approval decision. Scaling does not create calibration.")
-    st.caption(f"Assessment {short_id(result.assessment_id)}")
-    technical_evidence(result.model_dump(mode="json"), "assessment snapshot",
+            st.caption(t("assess.probability", calibrated=f"{result.calibrated_probability:.2%}",
+                         raw=f"{result.raw_probability:.2%}"))
+        st.caption(t("assess.system_state", status=result.status))
+    st.caption(t("assess.artifact_scope", scope=humanize(result.model_validation_scope)))
+    st.caption(t("assess.scale_disclaimer"))
+    st.caption(t("assess.reference", identifier=short_id(result.assessment_id)))
+    technical_evidence(result.model_dump(mode="json"), t("ctx.assessment_snapshot"),
                        codes=tuple(reason.code for reason in result.reasons))
 
 
 def show_financial_profile(features: dict) -> None:
     summary = features["30"]["features"]
-    st.caption("Last 30 days · verified evidence only; totals do not establish complete cash flow.")
-    labels = ("Verified inflow", "Evidence coverage", "Payment history", "Balance history")
+    st.caption(t("profile.last30"))
+    labels = (t("profile.verified_inflow"), t("profile.evidence_coverage"),
+              t("profile.payment_history"), t("profile.balance_history"))
     for column, label, value in zip(st.columns(4), labels, financial_summary(summary)):
         column.metric(label, value)
     for name in ("payment_punctuality", "liquidity_floor"):
         if summary[name]["value"] is None:
             for reason in summary[name].get("reasons", ()):
                 st.caption(humanize(reason))
-    st.subheader("Detailed underwriting evidence")
-    for tab, window in zip(st.tabs(["30 days", "60 days", "90 days"]), ("30", "60", "90")):
+    st.subheader(t("profile.detailed"))
+    windows = ("30", "60", "90")
+    for tab, window in zip(st.tabs([t("profile.tab_days", days=window) for window in windows]), windows):
         with tab:
             snapshot = features[window]
             st.dataframe([
-                {"Underwriting measure": humanize(name), "Value": display(v["value"]),
-                 "Evidence notes": "; ".join(humanize(reason) for reason in v.get("reasons", ())),
-                 "Contributing events": ", ".join(short_id(identifier) for identifier in v.get("contributing_event_ids", ()))}
+                {t("profile.col_measure"): humanize(name), t("profile.col_value"): display(v["value"]),
+                 t("profile.col_notes"): "; ".join(humanize(reason) for reason in v.get("reasons", ())),
+                 t("profile.col_events"): ", ".join(short_id(identifier)
+                                                    for identifier in v.get("contributing_event_ids", ()))}
                 for name, v in snapshot["features"].items()
             ], hide_index=True, width="stretch")
-            st.caption("Full feature keys and event identifiers are available in Technical evidence.")
-            technical_evidence(snapshot, f"{window}-day feature snapshot")
+            st.caption(t("profile.full_keys"))
+            technical_evidence(snapshot, t("ctx.feature_snapshot", window=window))
 
 def main() -> None:
-    st.set_page_config(page_title="Agrogami AI", layout="wide")
-    st.markdown("""<style>
+    st.set_page_config(page_title="Agrogami AI", layout="wide", page_icon=page_icon())
+    st.session_state.setdefault(LANGUAGE_STATE_KEY, DEFAULT_LANGUAGE)
+    bangla = current_language() == "bn"
+    st.markdown("<style>" + (BANGLA_FONT_IMPORT if bangla else "") + """
         /* Preserve the header, toolbar and sidebar navigation controls. */
         [data-testid="stAppDeployButton"], .stDeployButton,
         [data-testid="stHeaderActionElements"], a.header-anchor {
@@ -206,19 +240,23 @@ def main() -> None:
             font-size:.875rem;
             line-height:1.5;
         }
-        </style>""", unsafe_allow_html=True)
-    page = st.sidebar.radio("Navigation", PAGES)
+        """ + (BANGLA_FONT_RULES if bangla else "") + "</style>", unsafe_allow_html=True)
+    language_selector()
+    lang = current_language()  # format_func closures keep the language they were rendered with.
+    page = st.sidebar.radio(t("sidebar.navigation"), PAGES, format_func=lambda name: shown("page.", name, lang),
+                            key="nav_page")
     if page == "Overview":
         st.title("Agrogami AI")
-        st.subheader("Traceable underwriting from financial records traditional credit systems ignore")
-        st.caption("Turn mobile-money messages, informal ledger records, receipts, and bills into traceable financial evidence for thin-file credit assessment.")
+        st.subheader(t("overview.subtitle"))
+        st.caption(t("overview.caption"))
     else:
-        st.title(page)
-        st.caption(PAGE_HELPERS[page])
+        st.title(shown("page.", page))
+        st.caption(t("helper." + page))
     with st.container(key="demo_notice"):
-        st.warning("**Demo environment** · Synthetic records only. Illustrative assessments are not lending decisions or validated individual creditworthiness.", icon="⚠️")
+        st.warning(t("demo.notice"), icon="⚠️")
     settings = Settings()
-    choice = st.sidebar.selectbox("Demo applicant", (CUSTOM_APPLICANT, *DEMO_APPLICANTS), key="demo_applicant")
+    choice = st.sidebar.selectbox(t("sidebar.demo_applicant"), (CUSTOM_APPLICANT, *DEMO_APPLICANTS),
+                                  format_func=lambda name: shown("applicant.", name, lang), key="demo_applicant")
     previous_choice = st.session_state.get("selected_demo")
     if previous_choice is not None and previous_choice != choice:
         # Switching applicants must not carry another applicant's assessment or intake job forward.
@@ -227,10 +265,15 @@ def main() -> None:
     st.session_state["selected_demo"] = choice
     if choice in DEMO_APPLICANTS:
         st.session_state["applicant"] = str(DEMO_APPLICANTS[choice])
-    with st.sidebar.expander("Developer settings", expanded=False):
-        api_url = st.text_input("API URL", settings.api_url) if settings.local_demo_mode else settings.api_url
-        token = st.text_input("Demo credential", type="password")
-        applicant_text = st.text_input("Applicant UUID", st.session_state.setdefault("applicant", str(uuid4())))
+    with st.sidebar.expander(t("sidebar.developer_settings"), expanded=False):
+        api_url = (st.text_input(t("sidebar.api_url"), settings.api_url, key="api_url")
+                   if settings.local_demo_mode else settings.api_url)
+        token = st.text_input(t("sidebar.demo_credential"), type="password", key="demo_credential")
+        applicant_default = st.session_state.setdefault("applicant", str(uuid4()))
+        # The key follows the default so a newly selected applicant still refreshes the field,
+        # while a language switch (label change only) keeps what was typed.
+        applicant_text = st.text_input(t("sidebar.applicant_uuid"), applicant_default,
+                                       key=f"applicant_uuid:{applicant_default}")
     try:
         client = APIClient(api_url, token)
         applicant = DEMO_APPLICANTS[choice] if choice in DEMO_APPLICANTS else UUID(applicant_text)
@@ -242,35 +285,40 @@ def main() -> None:
                 if history:
                     st.session_state["assessment_id"] = history[-1]["assessment_id"]
         if page == "Overview":
-            st.write("An explainable underwriting evidence and risk-audit workbench for thin-file credit.")
-            st.write("Evidence → Candidates → Validation & Reconciliation → Canonical Ledger → Features → Risk → Calibration → Explanation → Fairness → Immutable Assessment")
-            st.write("Start in Applicant Evidence, corroborate facts in Evidence Review, then inspect the Financial Profile and Assessment. Every correction preserves its original evidence.")
+            st.write(t("overview.positioning"))
+            st.write(t("overview.pipeline"))
+            st.write(t("overview.start"))
             try:
                 readiness = client.request("GET", "/ready")
             except ClientError:
                 readiness = None
             if readiness and readiness.get("optional_models", {}).get("risk"):
-                st.info("Calibrated LightGBM model active (SYNTHETIC_DEMO scope). No representative linked borrower outcomes have been evaluated.")
+                st.info(t("overview.model_active"))
             else:
-                st.info("Model adapter available; trained Agrogami checkpoint not installed by default. No representative linked borrower outcomes have been evaluated.")
-            if st.button("Check backend readiness"):
+                st.info(t("overview.model_adapter"))
+            if st.button(t("overview.check_ready"), key="check_readiness"):
                 readiness = client.request("GET", "/ready")
-                st.write(f"Backend status: {humanize(readiness['status'])}")
-                technical_evidence(readiness, "backend readiness")
+                st.write(t("overview.backend_status", status=humanize(readiness['status'])))
+                technical_evidence(readiness, t("ctx.backend_readiness"))
         elif page == "Applicant Evidence":
-            scope = st.selectbox("Evidence scope", ["SYNTHETIC", "REAL/DE-IDENTIFIED"])
-            scenario = st.selectbox("Synthetic scenario", list(SCENARIOS))
+            scope = st.selectbox(t("intake.scope"), ["SYNTHETIC", "REAL/DE-IDENTIFIED"], key="evidence_scope")
+            scenario = st.selectbox(t("intake.scenario"), list(SCENARIOS),
+                                    format_func=lambda name: shown("scenario.", name, lang), key="synthetic_scenario")
             rahim = applicant == RAHIM_APPLICANT_ID and scenario == "External inflow"
             prefill = rahim_receipt_sms() if rahim else sample_sms(scenario)
-            text = st.text_area("SMS evidence", prefill if scope == "SYNTHETIC" else "",
+            text = st.text_area(t("intake.sms"), prefill if scope == "SYNTHETIC" else "",
                                 key=f"sms-{scope}-{scenario}" + ("-rahim" if rahim else ""))
-            provider = st.text_input("Provider/template", "SYNTHETIC-bKash-like" if scope == "SYNTHETIC" else "unknown")
-            account_text = st.text_input("Account UUID (optional)", "") if scope != "SYNTHETIC" else ""
-            if st.button("Submit SMS"):
+            if lang == "bn":
+                st.caption(t("intake.sms_english_note"))
+            provider = st.text_input(t("intake.provider"), "SYNTHETIC-bKash-like" if scope == "SYNTHETIC" else "unknown",
+                                     key=f"provider:{scope}")
+            account_text = (st.text_input(t("intake.account"), "", key="account_uuid")
+                            if scope != "SYNTHETIC" else "")
+            if st.button(t("intake.submit_sms"), key="submit_sms"):
                 if scope == "SYNTHETIC" and not text.startswith("SYNTHETIC:"):
-                    st.error("Synthetic evidence must retain its SYNTHETIC marker.")
+                    st.error(t("intake.marker_required"))
                 elif scope != "SYNTHETIC" and text.startswith("SYNTHETIC:"):
-                    st.error("Marked synthetic evidence must use the SYNTHETIC scope.")
+                    st.error(t("intake.marker_scope"))
                 else:
                     account = (synthetic_account(applicant, provider) if scope == "SYNTHETIC"
                                else UUID(account_text) if account_text.strip() else None)
@@ -278,9 +326,9 @@ def main() -> None:
                                              "text": text, "provider": provider})
                     st.session_state["job"] = job.model_dump(mode="json")
                     show_job(st.session_state["job"])
-            st.caption("Raster image upload preserves source identity; no OCR inference is claimed without configured checkpoints.")
-            image = st.file_uploader("Image evidence", type=["png", "jpg", "jpeg", "tiff"])
-            if image and st.button("Submit image"):
+            st.caption(t("intake.image_caption"))
+            image = st.file_uploader(t("intake.image"), type=["png", "jpg", "jpeg", "tiff"], key="image_evidence")
+            if image and st.button(t("intake.submit_image"), key="submit_image"):
                 job = client.request("POST", "/api/v1/intake/document", {"applicant_id": str(applicant),
                     "content_base64": base64.b64encode(image.getvalue()).decode(), "synthetic": scope == "SYNTHETIC"})
                 st.session_state["job"] = job
@@ -289,54 +337,56 @@ def main() -> None:
             job = st.session_state.get("job", {})
             if job:
                 if job.get("event_id"):
-                    technical_evidence(job, "intake record", codes=tuple(job.get("reasons", ())))
+                    technical_evidence(job, t("ctx.intake_record"), codes=tuple(job.get("reasons", ())))
                 else:
                     show_job(job)
-            with st.expander("Review candidate evidence", expanded=False):
-                candidate_id = st.text_input("Candidate UUID", job.get("candidate_id") or "")
+            with st.expander(t("review.candidate_expander"), expanded=False):
+                candidate_default = job.get("candidate_id") or ""
+                candidate_id = st.text_input(t("review.candidate_uuid"), candidate_default,
+                                             key=f"candidate_uuid:{candidate_default}")
             if candidate_id:
                 candidate = client.candidate(UUID(candidate_id))
                 source = client.request("GET", f"/api/v1/sources/{candidate.source_id}")
-                st.subheader("Original extraction")
-                st.caption("Extracted candidates require corroboration before they become accepted financial evidence.")
+                st.subheader(t("review.original_extraction"))
+                st.caption(t("review.candidates_need_corroboration"))
                 provider = next((field.location.provider for field in candidate.fields.values() if field.location.provider), None)
-                st.write(f"Source: {source_label(source['source_type'], provider, source['synthetic'])}")
-                technical_evidence(candidate.model_dump(mode="json"), "original candidate")
-                technical_evidence(source, "source provenance · SHA-256")
+                st.write(t("event.source", source=source_label(source['source_type'], provider, source['synthetic'])))
+                technical_evidence(candidate.model_dump(mode="json"), t("ctx.original_candidate"))
+                technical_evidence(source, t("ctx.source_provenance"))
             events = client.events(applicant)
             if events:
                 choices = {str(event.event_id): event for event in events}
                 def event_label(identifier: str) -> str:
                     event = choices[identifier]
                     return f"{humanize(event.transaction_type)} · {money(event.amount, event.currency)} · {humanize(event.validation_status)} · {event.created_at.isoformat()}"
-                event_id = st.selectbox("Event to review/correct", list(choices), format_func=event_label)
+                event_id = st.selectbox(t("review.event_select"), list(choices), format_func=event_label,
+                                        key="review_event")
                 show_event(choices[event_id])
-                with st.expander("Technical evidence — corroborated changes", expanded=False):
-                    changes = st.text_area("Explicit corroborated changes (JSON)", '{"ownership":"external"}')
-                reason = st.text_input("Correction reason", "Synthetic ownership corroborated")
-                alias = st.text_input("Demo reviewer alias", "reviewer-demo")
-                if st.button("Append reviewed version"):
+                with st.expander(t("tech.label_context", context=t("ctx.corroborated_changes")), expanded=False):
+                    changes = st.text_area(t("review.changes"), '{"ownership":"external"}', key="review_changes")
+                reason = st.text_input(t("review.reason"), "Synthetic ownership corroborated", key="review_reason")
+                alias = st.text_input(t("review.alias"), "reviewer-demo", key="review_alias")
+                if st.button(t("review.append"), key="append_review"):
                     reviewed = client.request("POST", f"/api/v1/events/{event_id}/review",
                         {"changes": json.loads(changes), "reason": reason, "reviewer_alias": alias})
-                    st.success("Reviewed version appended. Original evidence is preserved.")
+                    st.success(t("review.appended"))
                     show_event(CanonicalEvent.model_validate(reviewed))
-            with st.expander("Technical evidence — candidate acceptance", expanded=False):
-                st.caption("Candidate-only extraction can be accepted by supplying a full corroborated canonical contract.")
-                event_json = st.text_area("Candidate-only canonical event JSON", "")
-            if candidate_id and event_json and st.button("Accept corroborated candidate"):
+            with st.expander(t("tech.label_context", context=t("ctx.candidate_acceptance")), expanded=False):
+                st.caption(t("review.candidate_only_caption"))
+                event_json = st.text_area(t("review.candidate_json"), "", key="candidate_event_json")
+            if candidate_id and event_json and st.button(t("review.accept_candidate"), key="accept_candidate"):
                 accepted = client.request("POST", f"/api/v1/candidates/{candidate_id}/review", {
                     "event": json.loads(event_json), "reason": "Explicit human corroboration", "reviewer_alias": "reviewer-demo"})
                 show_event(CanonicalEvent.model_validate(accepted))
         elif page == "Event Ledger":
             events = client.events(applicant)
             if events:
-                st.write(f"{len(events)} stored event versions; review states remain visible.")
-                edge_only = st.checkbox("Show edge cases only", value=True)
+                st.write(t("ledger.count", count=len(events)))
+                edge_only = st.checkbox(t("ledger.edge_only"), value=True, key="ledger_edge_only")
                 st.dataframe(ledger_rows(events, edge_only), hide_index=True, width="stretch")
-                st.caption("Latest versions only. Duplicates count once, reversals cancel the linked payment, "
-                           "and own-wallet transfers are excluded from external cash flow.")
+                st.caption(t("ledger.caption"))
             else:
-                st.info("No event versions yet. Add and review evidence to begin the audit trail.")
+                st.info(t("empty.no_events"))
             for event in events:
                 with st.container(border=True):
                     show_event(event)
@@ -345,7 +395,7 @@ def main() -> None:
             latest = max((snapshot["scoring_time"] for snapshot in stored), default=None)
             chosen = {str(snapshot["window_days"]): snapshot for snapshot in stored if snapshot["scoring_time"] == latest}
             if set(chosen) == {"30", "60", "90"}:
-                st.caption(f"Stored feature snapshots as of {latest}, with the coverage attested when they were computed.")
+                st.caption(t("profile.stored_as_of", time=latest))
                 features = chosen
             else:
                 now = datetime.now(timezone.utc)
@@ -353,14 +403,16 @@ def main() -> None:
             show_financial_profile(features)
         elif page == "Assessment":
             latest_stored_assessment()
-            if st.button("Assess available evidence"):
+            if st.button(t("assess.run"), key="run_assessment"):
                 now = datetime.now(timezone.utc)
                 result = client.request("POST", "/api/v1/assessments", {"applicant_id": str(applicant),
                     "assessment_time": now.isoformat(), "coverage": {"applicant_id": str(applicant),
                     "known_at": (now - timedelta(microseconds=1)).isoformat(), "reasons": ["no_verified_coverage_supplied"]}})
                 st.session_state["assessment_id"] = result["assessment_id"]
-            with st.expander("Load assessment", expanded=False):
-                identifier = st.text_input("Assessment UUID", st.session_state.get("assessment_id", ""))
+            with st.expander(t("assess.load"), expanded=False):
+                assessment_default = st.session_state.get("assessment_id", "")
+                identifier = st.text_input(t("assess.uuid"), assessment_default,
+                                           key=f"assessment_uuid:{page}:{assessment_default}")
             if identifier:
                 result = client.assessment(UUID(identifier))
                 st.session_state["assessment_id"] = str(result.assessment_id)
@@ -368,8 +420,10 @@ def main() -> None:
         elif page == "Explanation":
             latest_stored_assessment()
             prompt = st.empty()
-            with st.expander("Load assessment", expanded=False):
-                identifier = st.text_input("Assessment UUID", st.session_state.get("assessment_id", ""))
+            with st.expander(t("assess.load"), expanded=False):
+                assessment_default = st.session_state.get("assessment_id", "")
+                identifier = st.text_input(t("assess.uuid"), assessment_default,
+                                           key=f"assessment_uuid:{page}:{assessment_default}")
             if identifier:
                 result = client.request("GET", f"/api/v1/assessments/{UUID(identifier)}/explanation")
                 st.session_state["assessment_id"] = str(UUID(identifier))
@@ -377,63 +431,68 @@ def main() -> None:
                     st.subheader(humanize(reason["code"]))
                     st.write(reason["description"])
                 if result["tree_shap"] is None:
-                    st.info("No supported precomputed TreeSHAP explanation is available.")
+                    st.info(t("explain.no_tree_shap"))
                 else:
                     shap = result["tree_shap"]
-                    st.subheader("TreeSHAP reason codes")
+                    st.subheader(t("explain.tree_shap"))
                     ranked = sorted(shap["contributions"].items(), key=lambda item: -abs(item[1]))
-                    st.dataframe([{"Model input": humanize(name), "Contribution to raw log-odds": round(value, 4),
-                                   "Direction": ("Raises modelled risk" if value > 0 else
-                                                 "Lowers modelled risk" if value < 0 else "No effect")}
+                    st.dataframe([{t("explain.col_input"): humanize(name),
+                                   t("explain.col_contribution"): round(value, 4),
+                                   t("explain.col_direction"): (t("explain.raises") if value > 0 else
+                                                                t("explain.lowers") if value < 0 else
+                                                                t("explain.no_effect"))}
                                   for name, value in ranked], hide_index=True, width="stretch")
-                    st.caption(f"Base value {shap['base_value']:.4f} over background {shap['background_identity']}.")
-                technical_evidence(result, "explanation", codes=tuple(reason["code"] for reason in result["reasons"]))
-                st.caption("SHAP is association, not causality, legal adverse-action compliance, or calibrated probability contribution.")
+                    st.caption(t("explain.base_value", base=f"{shap['base_value']:.4f}",
+                                 background=shap['background_identity']))
+                technical_evidence(result, t("ctx.explanation"), codes=tuple(reason["code"] for reason in result["reasons"]))
+                st.caption(t("explain.shap_disclaimer"))
             else:
-                prompt.info("Run an assessment on the Assessment page or load a stored assessment to view its explanation.")
+                prompt.info(t("explain.prompt"))
         elif page == "Fairness & Evaluation":
-            st.info("Not evaluated with representative linked borrower outcomes.")
-            with st.expander("Advanced lookup", expanded=False):
-                identifier = st.text_input("Stored evaluation UUID")
+            st.info(t("fair.not_evaluated"))
+            with st.expander(t("fair.advanced"), expanded=False):
+                identifier = st.text_input(t("fair.evaluation_uuid"), key="evaluation_uuid")
             if identifier:
                 evaluation = client.request("GET", f"/api/v1/evaluations/{UUID(identifier)}")
-                st.write(f"Evaluation scope: {humanize(evaluation['scope'])}")
+                st.write(t("fair.scope", scope=humanize(evaluation['scope'])))
                 for limitation in evaluation["limitations"]:
                     st.caption(limitation)
-                technical_evidence(evaluation, "stored evaluation")
-                if st.button("Read restricted aggregate fairness"):
-                    technical_evidence(client.request("GET", f"/api/v1/evaluations/{UUID(identifier)}/fairness"), "restricted aggregate fairness")
+                technical_evidence(evaluation, t("ctx.stored_evaluation"))
+                if st.button(t("fair.read_restricted"), key="read_fairness"):
+                    technical_evidence(client.request("GET", f"/api/v1/evaluations/{UUID(identifier)}/fairness"),
+                                       t("ctx.restricted_fairness"))
         elif page == "Audit Trail":
-            st.subheader("Immutable event versions")
+            st.subheader(t("audit.event_versions"))
             events = client.events(applicant)
             if not events:
-                st.info("No event versions yet. Add and review evidence to begin the audit trail.")
+                st.info(t("empty.no_events"))
             for event in events:
                 with st.container(border=True):
                     show_event(event)
-            st.subheader("Immutable assessment history")
+            st.subheader(t("audit.assessment_history"))
             history = client.request("GET", f"/api/v1/applicants/{applicant}/assessments")
             for snapshot in history:
                 st.write(f"{humanize(snapshot['status'])} · {snapshot['assessment_time']} · {short_id(snapshot['assessment_id'])}")
             if not history:
-                st.caption("No assessments yet. Assess available evidence to begin the assessment history.")
-            technical_evidence(history, "assessment versions and predecessor links")
-            st.caption("Correction appends a fresh unscored review snapshot. Original versions remain recoverable.")
+                st.caption(t("audit.no_assessments"))
+            technical_evidence(history, t("ctx.assessment_versions"))
+            st.caption(t("audit.correction_note"))
             job = st.session_state.get("job", {})
             if job:
-                st.subheader("Source and extraction lineage")
-                technical_evidence(client.request("GET", f"/api/v1/sources/{job['source_id']}"), "source provenance · SHA-256")
-                technical_evidence(job, "intake record")
-                if st.button("Inspect original candidate versions (reviewer/admin)"):
+                st.subheader(t("audit.lineage"))
+                technical_evidence(client.request("GET", f"/api/v1/sources/{job['source_id']}"), t("ctx.source_provenance"))
+                technical_evidence(job, t("ctx.intake_record"))
+                if st.button(t("audit.inspect_candidates"), key="inspect_candidates"):
                     for identifier in job.get("candidate_ids", ()):
-                        technical_evidence(client.candidate(UUID(identifier)).model_dump(mode="json"), "original candidate")
+                        technical_evidence(client.candidate(UUID(identifier)).model_dump(mode="json"),
+                                           t("ctx.original_candidate"))
         else:
-            st.link_button("Open synchronized project documentation", settings.public_api_url.rstrip("/") + "/docs")
-            st.link_button("Open API Swagger", settings.public_api_url.rstrip("/") + "/api/docs")
+            st.link_button(t("docs.open_project"), settings.public_api_url.rstrip("/") + "/docs")
+            st.link_button(t("docs.open_swagger"), settings.public_api_url.rstrip("/") + "/api/docs")
     except ClientError as exc:
         st.error(str(exc))
     except (ValueError, KeyError, TypeError):
-        st.error("Invalid identifier, JSON, or response contract. Check the supplied evidence and backend version.")
+        st.error(t("error.invalid_input"))
 
 if __name__ == "__main__":
     main()

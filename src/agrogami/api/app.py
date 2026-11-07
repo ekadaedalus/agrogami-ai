@@ -116,12 +116,15 @@ def create_app(service: ApplicationService | None = None, *, tokens: dict[str, R
         yield
         if owned:
             app.state.service.store.engine.dispose()
-    app = FastAPI(title="Agrogami AI", version=__version__, docs_url="/api/docs",
+    # Swagger UI is installed by install_swagger_ui below: same /api/docs route, project favicon.
+    app = FastAPI(title="Agrogami AI", version=__version__, docs_url=None,
                   summary="Traceable underwriting from financial records traditional credit systems ignore",
                   description=("An explainable underwriting evidence and risk-audit workbench for thin-file credit. "
                                "Assessment outputs are illustrative and are not lending decisions or validated "
                                "individual creditworthiness."),
                   openapi_url="/api/openapi.json", redoc_url=None, lifespan=lifespan)
+    from agrogami.api.project_docs import install_swagger_ui
+    install_swagger_ui(app, "/api/docs")
     app.state.service = service
     # Credentials and scope are server-owned; request role headers are never trusted.
     if tokens is None:

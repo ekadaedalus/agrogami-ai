@@ -23,6 +23,10 @@ local = ["streamlit>=1.50,<2", "mcp>=1.26,<2", "Markdown>=3.8,<4"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Non-Python UI assets (favicon) must ship in wheels and non-editable installs (e.g. the Docker image).
+"agrogami.ui" = ["assets/*.png"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

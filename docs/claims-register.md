@@ -123,3 +123,12 @@ This section supersedes the earlier PLANNED public-deployment rows.
 | Prism MCP not publicly exposed | DEMONSTRATED | No tunnel route to port 8001; /mcp on the public host does not reach Prism |
 | CSV bulk SMS intake | TESTED | POST /api/v1/intake/sms/bulk; tests/integration/test_backend_api.py bulk tests cover per-row parity with single intake, synthetic-only rows, reviewer role, header/UTF-8/row/size limits |
 | Production deployment, uptime or hosting SLA | PLANNED | The demo runs on a development machine; availability depends on that machine staying on |
+
+## Bangla/English interface — 2026-11-08
+
+| Claim | Status | Evidence / boundary |
+|---|---|---|
+| Bangla/English UI interface strings | TESTED | tests/unit/test_ui_i18n.py (key parity, no empty strings, English fallback, matching placeholders, unchanged page/scenario identifiers, AppTest language switch that keeps the selected applicant, credential, page and session). Interface text only; translations drafted with Claude Code and pending native-speaker review by the team; no Bangla OCR, numeral or khata claim |
+| Project favicon on the Streamlit UI, /docs and /api/docs | TESTED | tests/unit/test_ui_assets.py; the wheel build includes agrogami/ui/assets/favicon.png. Presentation only; OpenAPI schema and API responses unchanged |
+
+Current verified default suite, 2026-11-08: **491 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`): the 480 earlier cases unchanged plus 11 new UI localization/asset cases. A local Streamlit run (isolated port, no API, not tunnelled) was driven in headless Edge: both languages rendered, switching kept the selected applicant, credential and page, and the tab icon was the new favicon. No native-speaker review has happened yet.

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="src/agrogami/ui/assets/favicon.png" alt="Agrogami AI logo" width="120" />
+
 ### Agrogami AI
 
 **Credit built on evidence.**
@@ -13,7 +15,7 @@ Traceable underwriting from the financial records traditional credit systems ign
 [![Docs](https://img.shields.io/badge/docs-%2Fdocs-2563eb)](https://agrogami.jmmn.tech/docs)
 [![Tag](https://img.shields.io/github/v/tag/ekadaedalus/agrogami-ai?label=version)](https://github.com/ekadaedalus/agrogami-ai/tags)
 [![Python](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-480%20passing-brightgreen)](docs/build-status.md)
+[![Tests](https://img.shields.io/badge/tests-491%20passing-brightgreen)](docs/build-status.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 <sub>[Live demo](https://agrogami.jmmn.tech) · [Video](https://youtu.be/DRZB9UrpXwc) · [Docs](https://agrogami.jmmn.tech/docs) · [API reference](https://agrogami.jmmn.tech/api/docs) · [Technical reference](docs/technical-reference.md) · [Issues](https://github.com/ekadaedalus/agrogami-ai/issues)</sub>
@@ -120,6 +122,8 @@ These numbers measure how much of a known synthetic rule the pipeline recovers. 
 | Project docs | Allowlisted, escaped rendering of the repository documentation at `/docs` |
 | Agrogami Prism (MCP) | Four read-only tools (`get_evidence_ledger`, `get_assessment_snapshot`, `get_explanation_factors`, `get_fairness_audit`) over Streamable HTTP with bearer authentication; recorded calls from OpenAI Codex and Claude Code in [docs/evidence](docs/evidence/mcp-invocations.md) |
 
+**Interface: English and Bangla (বাংলা).** A sidebar switch translates the workbench's interface text. SMS samples, reason and status codes, identifiers, API JSON and numbers stay as they are; the Bangla text awaits native-speaker review by the team.
+
 ## Quick start
 
 Tested on **Python 3.14.8, Windows**. From PowerShell in the repository root:
@@ -133,14 +137,14 @@ Copy-Item .env.example .env
 .\scripts\run_ui.ps1                                 # UI on http://127.0.0.1:8501 (second terminal)
 ```
 
-Run the tests with `.\.venv\Scripts\python.exe -m pytest -q` (480 pass offline, no model downloads). Prism, tokens, deployment mode, the public tunnel and Docker are covered in the [technical reference](docs/technical-reference.md).
+Run the tests with `.\.venv\Scripts\python.exe -m pytest -q` (491 pass offline, no model downloads). Prism, tokens, deployment mode, the public tunnel and Docker are covered in the [technical reference](docs/technical-reference.md).
 
 ## Project layout
 
 ```
 src/agrogami/    contracts, storage, extraction, validation, features, risk, calibration,
                  explainability, fairness, application service, API, UI and MCP server
-tests/           unit, integration and adversarial tests (480 default)
+tests/           unit, integration and adversarial tests (491 default)
 scripts/         demo build, training, perturbation check, run and verification helpers
 data/synthetic/  seeded synthetic population, splits, metrics and data card
 docs/            architecture, data contract, feature dictionary, evaluation protocol,
@@ -150,7 +154,7 @@ docs/            architecture, data contract, feature dictionary, evaluation pro
 ## Roadmap
 
 - **Perception:** a consented, annotated message and khata dataset; fine-tune DeBERTa-v3-small for SMS and evaluate TrOCR and LayoutLMv3 (adapters are built and tested; no checkpoint is trained yet).
-- **Bangla khata reading.**
+- **Bangla/English numeral handling and Bangla khata reading.**
 - **A backtest on a real loan book**, then a **live lender pilot**. Pilot targets: under 10 minutes per assessment, a full audit trail, and 250 borrowers with a first microfinance partner.
 
 ## Responsible use
@@ -160,6 +164,15 @@ docs/            architecture, data contract, feature dictionary, evaluation pro
 - **No fairness or validity claim.** Fairness metrics are implemented but not evaluated; real predictive and fairness claims need representative, consented data linked to mature repayment outcomes.
 - **No generative model at runtime.** Every credit-relevant value comes from task-specific models and deterministic code; development used ChatGPT (ideation), OpenAI Codex (3–6 Oct) and Claude / Claude Code (from 13 Oct) under the [`AGENTS.md`](AGENTS.md) contract; all output was reviewed and tested by the team.
 - **Claim discipline.** Every claim maps to code, a test, an artefact or a stated limitation in the [claims register](docs/claims-register.md). See also [limitations](docs/limitations.md).
+
+## Team
+
+| Member | Role(s) | Owns |
+|---|---|---|
+| Mohammad Khairul Haque | Team Leader / Coordinator · Backend / Data Engineer · Lead AI/ML Engineer | Vision and milestones; FastAPI backend, SMS parser, evidence ledger, Prism MCP server, deployment; risk models, calibration and explanations |
+| Fahima Mehzabeen | UI/UX / Frontend Developer | Streamlit interface, applicant and reviewer flows, accessibility, Bangla/English interface localization |
+| Tanzida Haque | Presentation / Communication Lead | Pitch and demo storytelling, judge-facing walkthrough, submission and documentation consistency |
+| Sabah Tabassoom (NRB) | Business Analyst / Data Scientist | Problem and user definition, KPIs, product strategy for international markets, review of global credit-regulation and responsible-AI practice |
 
 ## Contributors
 

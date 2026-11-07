@@ -1,7 +1,8 @@
 """Allowlisted repository documentation, escaped before rendering."""
 from html import escape
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 from fastapi.responses import FileResponse, HTMLResponse
 
 DOCUMENTS = ("PRD.md", "architecture.md", "data-contract.md", "feature-dictionary.md",
@@ -9,11 +10,36 @@ DOCUMENTS = ("PRD.md", "architecture.md", "data-contract.md", "feature-dictionar
              "backend-api.md", "mcp.md", "local-demo.md", "claims-register.md")
 # Images referenced by relative path in the Markdown; served by name only, never by caller path.
 ASSETS = {"architecture-diagram.svg": "image/svg+xml"}
+# Project favicon shipped with the UI package; served by this fixed name only (presentation, no data).
+FAVICON = Path(__file__).resolve().parents[1] / "ui" / "assets" / "favicon.png"
+FAVICON_ROUTE = "/docs/assets/favicon.png"
+
+
+def install_swagger_ui(app: FastAPI, docs_url: str = "/api/docs") -> None:
+    """FastAPI's default Swagger UI routes (create the app with docs_url=None), identical except the tab icon."""
+    async def swagger_ui_html(request: Request) -> HTMLResponse:
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
+        if oauth2_redirect_url:
+            oauth2_redirect_url = root_path + oauth2_redirect_url
+        return get_swagger_ui_html(openapi_url=root_path + app.openapi_url, title=f"{app.title} - Swagger UI",
+                                   oauth2_redirect_url=oauth2_redirect_url, init_oauth=app.swagger_ui_init_oauth,
+                                   swagger_ui_parameters=app.swagger_ui_parameters,
+                                   swagger_favicon_url=root_path + FAVICON_ROUTE)
+    app.add_route(docs_url, swagger_ui_html, include_in_schema=False)
+    if app.swagger_ui_oauth2_redirect_url:
+        async def swagger_ui_redirect(request: Request) -> HTMLResponse:
+            return get_swagger_ui_oauth2_redirect_html()
+        app.add_route(app.swagger_ui_oauth2_redirect_url, swagger_ui_redirect, include_in_schema=False)
+
 
 def router(root: Path) -> APIRouter:
     routes = APIRouter()
     @routes.get("/docs/assets/{name}", include_in_schema=False)
     def asset(name: str) -> FileResponse:
+        if name == "favicon.png" and FAVICON.is_file():
+            return FileResponse(FAVICON, media_type="image/png",
+                                headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "no-cache"})
         if name not in ASSETS or not (root / name).is_file():
             raise HTTPException(404, "Not found")
         return FileResponse(root / name, media_type=ASSETS[name],
@@ -36,6 +62,7 @@ def router(root: Path) -> APIRouter:
         return ('<!doctype html><html lang="en"><meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width, initial-scale=1">'
                 '<title>Agrogami AI — Documentation</title>'
+                f'<link rel="icon" type="image/png" href="{FAVICON_ROUTE}">'
                 '<style>body{max-width:1000px;margin:3rem auto;padding:1rem;font:16px system-ui;line-height:1.6}'
                 'img{max-width:100%;height:auto}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:.5rem}pre{overflow:auto}'
                 'h1{font-size:2.8rem;line-height:1.15;margin-bottom:.75rem}'
