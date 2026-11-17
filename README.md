@@ -42,7 +42,7 @@ It is built for Bangladesh's micro-enterprises: the furniture workshop or market
 
 ## Try it
 
-Open **[agrogami.jmmn.tech](https://agrogami.jmmn.tech)**. Available 10:00 AM – 2:00 AM BST (UTC+6) daily, Nov 20–25; if it’s unreachable, the video shows the full flow at 1:00–2:00. Applicant data needs an access code: competition judges will find a read-only judge code in the submission. Paste it into **Developer settings → Demo credential** in the sidebar, then pick an applicant:
+Open **[agrogami.jmmn.tech](https://agrogami.jmmn.tech)**. Available 24/7 throughout the judging period; if it’s unreachable, the video shows the full flow at 1:00–2:00. Applicant data needs an access code: competition judges will find a read-only judge code in the submission. Paste it into **Developer settings → Demo credential** in the sidebar, then pick an applicant:
 
 - **Rahim**, a synthetic furniture-workshop owner: 328 messages across two wallets, scored at a 3.89% modelled risk (display score 658), with the reasons behind it.
 - **The abstention demo**: one verified inflow and unknown coverage, so the assessment is withheld.
@@ -111,7 +111,7 @@ These numbers measure how much of a known synthetic rule the pipeline recovers. 
 | Calibration | Platt or isotonic calibration on a split disjoint from training |
 | Explanations | Interventional TreeSHAP on the raw margin, rendered as controlled reason codes linked to evidence |
 | Abstention | `NEEDS_REVIEW` and `INSUFFICIENT_EVIDENCE` keep the score null |
-| Fairness audit | Group TPR/FPR, selection and abstention rates with Wilson intervals; protected attributes are offline audit inputs only (implemented, not yet evaluated) |
+| Fairness audit | Group TPR/FPR, selection and abstention rates with Wilson intervals; protected attributes are offline audit inputs only (awaiting data; see [Development status](#development-status)) |
 
 ### Surfaces
 
@@ -151,17 +151,18 @@ docs/            architecture, data contract, feature dictionary, evaluation pro
                  responsible AI, limitations, claims register and MCP evidence
 ```
 
-## Roadmap
+## Development status
 
-- **Perception:** a consented, annotated message and khata dataset; fine-tune DeBERTa-v3-small for SMS and evaluate TrOCR and LayoutLMv3 (adapters are built and tested; no checkpoint is trained yet).
-- **Bangla/English numeral handling and Bangla khata reading.**
-- **A backtest on a real loan book**, then a **live lender pilot**. Pilot targets: under 10 minutes per assessment, a full audit trail, and 250 borrowers with a first microfinance partner.
+- **Running today, on synthetic data:** SMS intake (single message or CSV bulk upload) and template parsing; validation and reconciliation; 30/60/90-day features; calibrated LightGBM with TreeSHAP reasons; abstention; the English/Bangla workbench; the REST API; the Prism MCP server (localhost only, not exposed on the public demo). 491 automated tests pass by default; 3 optional tests that need a supplied model checkpoint are excluded.
+- **Built and tested, not yet active:** TrOCR, LayoutLMv3 and DeBERTa-v3-small adapters, tested with stand-in models (no trained checkpoint, so document images are preprocessed but do not yet produce accepted events); fairness-audit metrics and the Fairlearn wrapper (no evaluation population).
+- **Included, not yet exercised:** the PostgreSQL path (schema compiles in tests; never run against a live server) and the Docker files (never built or run).
+- **Next:** a consented, annotated message and khata dataset to fine-tune DeBERTa-v3-small and evaluate TrOCR and LayoutLMv3; Bangla/English numeral handling and Bangla khata reading; a backtest on a real loan book; then a live lender pilot. Pilot targets: under 10 minutes per assessment, a full audit trail, and 250 borrowers with a first microfinance partner.
 
 ## Responsible use
 
 - **Synthetic only.** No real borrower, khata, utility-bill or provider data is used. The SMS templates are invented look-alikes; no live bKash, Nagad or bank integration is claimed.
 - **Not a lending decision.** Outputs are illustrative research results, and a loan officer decides. The 300–850 score is not FICO or bureau-equivalent.
-- **No fairness or validity claim.** Fairness metrics are implemented but not evaluated; real predictive and fairness claims need representative, consented data linked to mature repayment outcomes.
+- **No validity claim yet.** Real predictive and fairness claims need representative, consented data linked to mature repayment outcomes.
 - **No generative model at runtime.** Every credit-relevant value comes from task-specific models and deterministic code; development used ChatGPT (ideation), OpenAI Codex (3–6 Oct) and Claude / Claude Code (from 13 Oct) under the [`AGENTS.md`](AGENTS.md) contract; all output was reviewed and tested by the team.
 - **Claim discipline.** Every claim maps to code, a test, an artefact or a stated limitation in the [claims register](docs/claims-register.md). See also [limitations](docs/limitations.md).
 

@@ -132,3 +132,16 @@ This section supersedes the earlier PLANNED public-deployment rows.
 | Project favicon on the Streamlit UI, /docs and /api/docs | TESTED | tests/unit/test_ui_assets.py; the wheel build includes agrogami/ui/assets/favicon.png. Presentation only; OpenAPI schema and API responses unchanged |
 
 Current verified default suite, 2026-11-08: **491 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`): the 480 earlier cases unchanged plus 11 new UI localization/asset cases. A local Streamlit run (isolated port, no API, not tunnelled) was driven in headless Edge: both languages rendered, switching kept the selected applicant, credential and page, and the tab icon was the new favicon. No native-speaker review has happened yet.
+
+## Commercial model — 2026-11-18
+
+Business hypotheses stated in the submission (Public Summary and Solution Description). None is validated by a customer, contract or market study recorded in this repository.
+
+| Claim | Status | Evidence / boundary |
+|---|---|---|
+| Buyer is the lender (microfinance institutions and SME lending desks), not the borrower | PLANNED | Hypothesis; no customer interview or contract recorded |
+| Market of about 700 licensed microfinance institutions serving some 4.2 million microenterprise borrowers | PLANNED | Hypothesis; source figures not recorded in this repository |
+| Price of Tk 100 per completed assessment, about one credit-bureau inquiry; no charge when the score is withheld | PLANNED | Hypothesis; no pricing test or bureau-fee source recorded |
+| 250-borrower pilot with a first microfinance partner | PLANNED | Hypothesis; partner not yet signed |
+| Evidence-backed assessment in under 10 minutes | PLANNED | Pilot target only; no latency measured (see the latency row above) |
+| Path: synthetic prototype → partner loan-book backtest → 250-borrower pilot → paid rollout | PLANNED | Only the synthetic prototype exists today |
