@@ -115,3 +115,19 @@ All of these are synthetic software demonstrations, not real predictive, calibra
 - **Test isolation:** a local `.env` can no longer load demo models into the default-startup test, and `tests/conftest.py` creates the gitignored `.pytest_temp` parent so `python -m pytest` works on a fresh clone.
 - **Repository:** Apache-2.0 `LICENSE`, rewritten README, and the previous README moved to `docs/technical-reference.md`. Demo banner now says synthetic records only.
 - **Test suite:** **480 passed, 3 deselected** (`python -m pytest -q`).
+
+## Status of remaining human actions — 2026-11-19
+
+This updates the lists in "External blockers and remaining human actions" above and in codex-handoff.md "Remaining Human Actions". Those older entries are kept unchanged as dated records.
+
+Closed:
+- **Public deployment** of the synthetic demo: live since 2026-10-20 (see the 2026-10-20 pass above).
+- **Video and proof links:** the 3-minute pitch video and the live demo, docs and API reference links are in the README.
+- **External MCP client invocation:** Codex (2026-10-05) and Claude Code (2026-10-19), recorded in docs/evidence/mcp-invocations.md.
+- **Final UI review:** the team completed the final UI verification on 2026-11-19 (team-attested; no review record or screenshots are stored in the repository).
+- **Bangla interface text:** the team's native-speaker review was completed on 2026-11-19 (team-attested). This covers interface text only; there is still no Bangla OCR, numeral or khata claim.
+
+Still open:
+- **Docker:** config, build and run have never been verified.
+- **Production operations and security:** identity, applicant isolation, encryption, rate limiting, retention, migrations and crash recovery are not implemented.
+- **External data blockers (unchanged):** real provider templates, consented annotations, trained DeBERTa/TrOCR/LayoutLMv3 checkpoints and mature linked repayment outcomes. Real predictive, calibration, fairness and latency claims stay blocked.

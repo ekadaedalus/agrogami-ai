@@ -122,7 +122,7 @@ These numbers measure how much of a known synthetic rule the pipeline recovers. 
 | Project docs | Allowlisted, escaped rendering of the repository documentation at `/docs` |
 | Agrogami Prism (MCP) | Four read-only tools (`get_evidence_ledger`, `get_assessment_snapshot`, `get_explanation_factors`, `get_fairness_audit`) over Streamable HTTP with bearer authentication; recorded calls from OpenAI Codex and Claude Code in [docs/evidence](docs/evidence/mcp-invocations.md) |
 
-**Interface: English and Bangla (বাংলা).** A sidebar switch translates the workbench's interface text. SMS samples, reason and status codes, identifiers, API JSON and numbers stay as they are; the Bangla text awaits native-speaker review by the team.
+**Interface: English and Bangla (বাংলা).** A sidebar switch translates the workbench's interface text. SMS samples, reason and status codes, identifiers, API JSON and numbers stay as they are; the Bangla text was reviewed by a native speaker on the team on 2026-11-19.
 
 ## Quick start
 

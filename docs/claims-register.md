@@ -128,10 +128,10 @@ This section supersedes the earlier PLANNED public-deployment rows.
 
 | Claim | Status | Evidence / boundary |
 |---|---|---|
-| Bangla/English UI interface strings | TESTED | tests/unit/test_ui_i18n.py (key parity, no empty strings, English fallback, matching placeholders, unchanged page/scenario identifiers, AppTest language switch that keeps the selected applicant, credential, page and session). Interface text only; translations drafted with Claude Code and pending native-speaker review by the team; no Bangla OCR, numeral or khata claim |
+| Bangla/English UI interface strings | TESTED | tests/unit/test_ui_i18n.py (key parity, no empty strings, English fallback, matching placeholders, unchanged page/scenario identifiers, AppTest language switch that keeps the selected applicant, credential, page and session). Interface text only; translations drafted with Claude Code and reviewed by a native speaker on the team (2026-11-19, team-attested; no review record in the repository); no Bangla OCR, numeral or khata claim |
 | Project favicon on the Streamlit UI, /docs and /api/docs | TESTED | tests/unit/test_ui_assets.py; the wheel build includes agrogami/ui/assets/favicon.png. Presentation only; OpenAPI schema and API responses unchanged |
 
-Current verified default suite, 2026-11-08: **491 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`): the 480 earlier cases unchanged plus 11 new UI localization/asset cases. A local Streamlit run (isolated port, no API, not tunnelled) was driven in headless Edge: both languages rendered, switching kept the selected applicant, credential and page, and the tab icon was the new favicon. No native-speaker review has happened yet.
+Current verified default suite, 2026-11-08: **491 passed, 3 optional heavy tests deselected** on Python 3.14.8 (`.\.venv\Scripts\python.exe -m pytest -q`): the 480 earlier cases unchanged plus 11 new UI localization/asset cases. A local Streamlit run (isolated port, no API, not tunnelled) was driven in headless Edge: both languages rendered, switching kept the selected applicant, credential and page, and the tab icon was the new favicon. No native-speaker review had happened at that point; the team completed it on 2026-11-19.
 
 ## Commercial model — 2026-11-18
 

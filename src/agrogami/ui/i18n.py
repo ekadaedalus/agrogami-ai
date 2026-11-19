@@ -4,7 +4,8 @@ Scope: visible interface text only. Internal identifiers (page names, scenario k
 names), reason/status codes, UUIDs, hashes, model/version strings, API JSON and SMS sample text stay
 exactly as they are. Numbers keep Western digits in both languages.
 
-The Bangla strings were drafted with Claude Code and are pending native-speaker review by the team.
+The Bangla strings were drafted with Claude Code and reviewed by a native speaker on the team
+(2026-11-19).
 """
 from __future__ import annotations
 
