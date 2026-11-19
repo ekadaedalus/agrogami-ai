@@ -155,6 +155,27 @@ Copy-Item .env.example .env
 
 Run the tests with `.\.venv\Scripts\python.exe -m pytest -q` (491 pass offline, no model downloads). Prism, tokens, deployment mode, the public tunnel and Docker are covered in the [technical reference](docs/technical-reference.md).
 
+**macOS / Linux (bash)**
+
+```bash
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install --only-binary=:all: -e ".[test,local,trees,fairness]"
+cp .env.example .env
+python -m scripts.build_demo     # seeded synthetic population, models, Rahim and the abstention applicant
+
+# API on http://127.0.0.1:8000 (loads the demo settings written by build_demo, as run_demo_api.ps1 does)
+while IFS='=' read -r k v; do export "$k=$v"; done < <(grep -E '^AGROGAMI_[A-Z_]+=' private_data/demo/backend.env)
+python -m uvicorn agrogami.api.app:app --host 127.0.0.1 --port 8000 --no-access-log
+
+# UI on http://127.0.0.1:8501 (second terminal, after `source .venv/bin/activate`)
+python -m streamlit run src/agrogami/ui/app.py --server.address=127.0.0.1 --server.port=8501 --server.headless=true --browser.gatherUsageStats=false
+
+python -m pytest -q
+```
+
+Not yet tested on macOS or Linux; the tested environment is Windows (see [constraints-tested.txt](constraints-tested.txt)).
+
 ## Project layout
 
 ```
@@ -173,6 +194,8 @@ docs/            architecture, data contract, feature dictionary, evaluation pro
 - **Built and tested, not yet active:** TrOCR, LayoutLMv3 and DeBERTa-v3-small adapters, tested with stand-in models (no trained checkpoint, so document images are preprocessed but do not yet produce accepted events); fairness-audit metrics and the Fairlearn wrapper (no evaluation population).
 - **Included, not yet exercised:** the PostgreSQL path (schema compiles in tests; never run against a live server) and the Docker files (never built or run).
 - **Next:** a consented, annotated message and khata dataset to fine-tune DeBERTa-v3-small and evaluate TrOCR and LayoutLMv3; Bangla/English numeral handling and Bangla khata reading; a backtest on a real loan book; then a live lender pilot. Pilot targets: under 10 minutes per assessment, a full audit trail, and 250 borrowers with a first microfinance partner.
+
+The `Dockerfile` and `docker-compose.yml` are included but unverified: they have never been built or run. Use the [Quick start](#quick-start) instead.
 
 ## Responsible use
 
