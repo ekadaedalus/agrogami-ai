@@ -15,7 +15,7 @@ Traceable underwriting from the financial records traditional credit systems ign
 [![Docs](https://img.shields.io/badge/docs-%2Fdocs-2563eb)](https://agrogami.jmmn.tech/docs)
 [![Tag](https://img.shields.io/github/v/tag/ekadaedalus/agrogami-ai?label=version)](https://github.com/ekadaedalus/agrogami-ai/tags)
 [![Python](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![Tests](https://img.shields.io/badge/tests-491%20passing-brightgreen)](docs/build-status.md)
+[![Tests](https://github.com/ekadaedalus/agrogami-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/ekadaedalus/agrogami-ai/actions/workflows/tests.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 <sub>[Live demo](https://agrogami.jmmn.tech) · [Video](https://youtu.be/DRZB9UrpXwc) · [Docs](https://agrogami.jmmn.tech/docs) · [API reference](https://agrogami.jmmn.tech/api/docs) · [Technical reference](docs/technical-reference.md) · [Issues](https://github.com/ekadaedalus/agrogami-ai/issues)</sub>

@@ -145,3 +145,4 @@ Business hypotheses stated in the submission (Public Summary and Solution Descri
 | 250-borrower pilot with a first microfinance partner | PLANNED | Hypothesis; partner not yet signed |
 | Evidence-backed assessment in under 10 minutes | PLANNED | Pilot target only; no latency measured (see the latency row above) |
 | Path: synthetic prototype → partner loan-book backtest → 250-borrower pilot → paid rollout | PLANNED | Only the synthetic prototype exists today |
+| Default test suite runs in CI on GitHub Actions (windows-latest, Python 3.14.8, wheels only, constraints-tested.txt) | TESTED | .github/workflows/tests.yml; first run on PR #1, 2026-11-19: 491 passed, 3 deselected, as read from the job log by the team (https://github.com/ekadaedalus/agrogami-ai/actions/runs/44539496772). Windows only; no macOS/Linux job; no secrets or model downloads |
