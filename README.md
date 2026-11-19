@@ -217,7 +217,7 @@ The `Dockerfile` and `docker-compose.yml` are included but unverified: they have
 ## Contributors
 
 <a href="https://github.com/ekadaedalus/agrogami-ai/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ekadaedalus/agrogami-ai" alt="Contributors" />
+  <img src="https://contrib.rocks/image?repo=ekadaedalus/agrogami-ai&max=100" alt="Contributors" />
 </a>
 
 Built for the **Idea to Unicorn** track of the International AI Builders Congress 2026.
