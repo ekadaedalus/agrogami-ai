@@ -124,8 +124,8 @@ Closed:
 - **Public deployment** of the synthetic demo: live since 2026-10-20 (see the 2026-10-20 pass above).
 - **Video and proof links:** the 3-minute pitch video and the live demo, docs and API reference links are in the README.
 - **External MCP client invocation:** Codex (2026-10-05) and Claude Code (2026-10-19), recorded in docs/evidence/mcp-invocations.md.
-- **Final UI review:** the team completed the final UI verification on 2026-11-19 (team-attested; no review record or screenshots are stored in the repository).
-- **Bangla interface text:** the team's native-speaker review was completed on 2026-11-19 (team-attested). This covers interface text only; there is still no Bangla OCR, numeral or khata claim.
+- **Final UI review:** the team completed the final UI verification on 2026-11-19 (team-attested). Five product screenshots from the synthetic demo are in docs/screenshots/ and shown in the README: assessment, abstention, TreeSHAP reasons, event provenance and the Bangla interface. They show the UI as reviewed, not a review checklist.
+- **Bangla interface text:** the team's native-speaker review was completed on 2026-11-19 (team-attested; docs/screenshots/bangla-ui.png shows the Assessment page in Bangla). This covers interface text only; there is still no Bangla OCR, numeral or khata claim.
 
 Still open:
 - **Docker:** config, build and run have never been verified.

@@ -49,6 +49,22 @@ Open **[agrogami.jmmn.tech](https://agrogami.jmmn.tech)**. Available 24/7 throug
 
 Project documentation is public at [/docs](https://agrogami.jmmn.tech/docs) and the API reference at [/api/docs](https://agrogami.jmmn.tech/api/docs).
 
+## Screenshots
+
+| Assessment | Assessment withheld |
+|---|---|
+| ![Rahim's assessment: illustrative project score 658, calibrated probability 3.89%, and the not-FICO notice](docs/screenshots/assessment-rahim.png) | ![Abstention demo: assessment withheld for insufficient evidence, with the reasons listed and no score](docs/screenshots/abstention.png) |
+
+| Model reasons | Source provenance |
+|---|---|
+| ![Explanation page: TreeSHAP reason codes for Rahim, with each input's contribution and direction](docs/screenshots/explanation-evidence.png) | ![Event Ledger: one accepted event's technical record, with its source hash, text span and extractor version](docs/screenshots/event-provenance.png) |
+
+| Bangla interface |
+|---|
+| <img src="docs/screenshots/bangla-ui.png" alt="Rahim's assessment with the interface switched to Bangla; the score, percentage and codes stay in English" width="440"> |
+
+*All data shown is synthetic.*
+
 ## Why Agrogami
 
 Banks can only judge what they can measure. Micro-enterprises keep their financial lives in mobile-money messages, receipts and handwritten khatas, so a lender sees no file at all, and a creditworthy borrower is turned away.
