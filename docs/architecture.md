@@ -2,7 +2,7 @@
 
 ![Agrogami AI evidence-to-assessment architecture](architecture-diagram.svg)
 
-Solid boxes run in the current release. Dashed boxes are built but not active or not yet run (perception adapters, offline fairness audit).
+Solid boxes run in the current release. Dashed boxes are built but not active or not yet run (perception adapters, offline fairness audit). Numbered badges give the pipeline order; steps 5–9 read right to left. The amber diamond is the evidence gate: when evidence is incomplete or unreviewed, the assessment is withheld with a null score and the model is not run. The dark pill is the loan officer, a person rather than a software component. External MCP clients query Prism; Prism never calls them. The light dashed note marks development-time CloudCamp guidance, which is outside the runtime.
 
 ## Second-pass backend extension
 
